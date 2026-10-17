@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <RootNamespace>MedicalApp</RootNamespace>
+        <PackageId>MedicalApp</PackageId>
+        <UserSecretsId>bc1e6cf9-bf77-4de7-bfdc-2de7a778673c</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer"/>
+        <PackageReference Include="FastEndpoints.Swagger"/>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+        <PackageReference Include="ErrorOr"/>
+        <PackageReference Include="Vogen"/>
+        <PackageReference Include="Ardalis.Specification.EntityFrameworkCore"/>
+        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer"/>
+        <PackageReference Include="FastEndpoints"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="MedicalApp.ArchitectureTests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj"/>
+    </ItemGroup>
+</Project>

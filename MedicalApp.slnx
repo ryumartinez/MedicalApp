@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
+  <Project Path="src/WebApi/WebApi.csproj" />
+  <Project Path="tests/WebApi.ArchitectureTests/WebApi.ArchitectureTests.csproj" />
+  <Project Path="tests/WebApi.IntegrationTests/WebApi.IntegrationTests.csproj" />
+  <Project Path="tests/WebApi.UnitTests/WebApi.UnitTests.csproj" />
+  <Project Path="tools/AppHost/AppHost.csproj" />
+  <Project Path="tools/MigrationService/MigrationService.csproj" />
+</Solution>
