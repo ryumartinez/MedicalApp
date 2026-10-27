@@ -1,4 +1,6 @@
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
+using MedicalApp.Common.Domain.Patients;
 
 // Preserve the namespace across partial classes
 // ReSharper disable once CheckNamespace

@@ -2,7 +2,7 @@ namespace MedicalApp.Common.Domain.Appointments;
 
 public record AppointmentBookedEvent(
     AppointmentId AppointmentId,
-    PatientId PatientId,
-    DoctorId DoctorId,
+    Patients.PatientId PatientId,
+    Doctors.DoctorId DoctorId,
     DateTime StartUtc,
     DateTime EndUtc) : IEvent;

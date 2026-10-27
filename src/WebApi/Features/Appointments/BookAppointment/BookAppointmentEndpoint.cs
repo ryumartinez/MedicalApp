@@ -1,5 +1,9 @@
 using Ardalis.Specification.EntityFrameworkCore;
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
+using MedicalApp.Common.Domain.Patients;
+using DoctorId = MedicalApp.Common.Domain.Doctors.DoctorId;
+using PatientId = MedicalApp.Common.Domain.Patients.PatientId;
 
 namespace MedicalApp.Features.Appointments.BookAppointment;
 

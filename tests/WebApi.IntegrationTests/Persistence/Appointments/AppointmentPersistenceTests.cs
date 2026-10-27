@@ -1,5 +1,7 @@
 using Ardalis.Specification.EntityFrameworkCore;
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
+using MedicalApp.Common.Domain.Patients;
 using MedicalApp.Common.Persistence;
 using MedicalApp.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;

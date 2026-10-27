@@ -1,4 +1,4 @@
-namespace MedicalApp.Common.Domain.Appointments;
+namespace MedicalApp.Common.Domain.Patients;
 
 public static class PatientErrors
 {

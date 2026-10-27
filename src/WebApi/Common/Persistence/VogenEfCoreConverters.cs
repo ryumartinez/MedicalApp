@@ -1,6 +1,8 @@
 using MedicalApp.Common.Domain.Heroes;
 using MedicalApp.Common.Domain.Teams;
 using MedicalApp.Common.Domain.Appointments;
+using DoctorId = MedicalApp.Common.Domain.Doctors.DoctorId;
+using PatientId = MedicalApp.Common.Domain.Patients.PatientId;
 
 namespace MedicalApp.Common.Persistence;
 

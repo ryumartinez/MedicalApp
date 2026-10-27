@@ -1,4 +1,6 @@
 using MedicalApp.Common.Domain.Base;
+using MedicalApp.Common.Domain.Doctors;
+using MedicalApp.Common.Domain.Patients;
 
 namespace MedicalApp.Common.Domain.Appointments;
 
@@ -13,8 +15,8 @@ public class Appointment : AggregateRoot<AppointmentId>
     public const int MaximumAppointmentDurationHours = 8;
     public const int MinimumBookingAdvanceMinutes = 15;
 
-    public PatientId PatientId { get; private set; }
-    public DoctorId DoctorId { get; private set; }
+    public Patients.PatientId PatientId { get; private set; }
+    public Doctors.DoctorId DoctorId { get; private set; }
 
     public DateTime StartUtc
     {
@@ -97,7 +99,7 @@ public class Appointment : AggregateRoot<AppointmentId>
     {
     }
 
-    public static Appointment Create(PatientId patientId, DoctorId doctorId, DateTime startUtc,
+    public static Appointment Create(Patients.PatientId patientId, Doctors.DoctorId doctorId, DateTime startUtc,
         DateTime endUtc, string? notes = null)
     {
         var appointment = new Appointment

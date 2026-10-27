@@ -2,11 +2,15 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
+using MedicalApp.Common.Domain.Patients;
 using MedicalApp.Features.Appointments.BookAppointment;
 using MedicalApp.Features.Appointments.GetAppointment;
 using MedicalApp.Features.Appointments.GetAppointments;
 using MedicalApp.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;
+using DoctorId = MedicalApp.Common.Domain.Doctors.DoctorId;
+using PatientId = MedicalApp.Common.Domain.Patients.PatientId;
 
 namespace MedicalApp.IntegrationTests.Endpoints.Appointments;
 

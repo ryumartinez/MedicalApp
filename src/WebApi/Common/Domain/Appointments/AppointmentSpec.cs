@@ -2,7 +2,7 @@ namespace MedicalApp.Common.Domain.Appointments;
 
 public sealed class AppointmentSpec : SingleResultSpecification<Appointment>
 {
-    public static AppointmentSpec Overlapping(DoctorId doctorId, DateTime startUtc, DateTime endUtc)
+    public static AppointmentSpec Overlapping(Doctors.DoctorId doctorId, DateTime startUtc, DateTime endUtc)
     {
         var spec = new AppointmentSpec();
         spec.Query.Where(a => a.DoctorId == doctorId && a.Status != AppointmentStatus.Cancelled &&
@@ -10,7 +10,7 @@ public sealed class AppointmentSpec : SingleResultSpecification<Appointment>
         return spec;
     }
 
-    public static AppointmentSpec Filtered(PatientId? patientId, DoctorId? doctorId, AppointmentStatus? status,
+    public static AppointmentSpec Filtered(Patients.PatientId? patientId, Doctors.DoctorId? doctorId, AppointmentStatus? status,
         DateTime? fromUtc, DateTime? toUtc)
     {
         var spec = new AppointmentSpec();
@@ -27,7 +27,7 @@ public sealed class AppointmentSpec : SingleResultSpecification<Appointment>
         return spec;
     }
 
-    public static AppointmentSpec Page(PatientId? patientId, DoctorId? doctorId, AppointmentStatus? status,
+    public static AppointmentSpec Page(Patients.PatientId? patientId, Doctors.DoctorId? doctorId, AppointmentStatus? status,
         DateTime? fromUtc, DateTime? toUtc, int page, int pageSize)
     {
         var spec = Filtered(patientId, doctorId, status, fromUtc, toUtc);

@@ -1,4 +1,5 @@
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
 
 namespace MedicalApp.UnitTests.Features.Appointments;
 

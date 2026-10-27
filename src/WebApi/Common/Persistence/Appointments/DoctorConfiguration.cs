@@ -1,4 +1,5 @@
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.Doctors;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace MedicalApp.Common.Persistence.Appointments;

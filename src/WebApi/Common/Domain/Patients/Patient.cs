@@ -1,7 +1,7 @@
-using System.Text.RegularExpressions;
 using MedicalApp.Common.Domain.Base;
+using System.Text.RegularExpressions;
 
-namespace MedicalApp.Common.Domain.Appointments;
+namespace MedicalApp.Common.Domain.Patients;
 
 [ValueObject<Guid>]
 public readonly partial struct PatientId;
