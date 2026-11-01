@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EntityFrameworkCore.Exceptions.SqlServer"/>
+        <PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL"/>
         <PackageReference Include="FastEndpoints.Swagger"/>
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
@@ -18,7 +18,7 @@
         <PackageReference Include="ErrorOr"/>
         <PackageReference Include="Vogen"/>
         <PackageReference Include="Ardalis.Specification.EntityFrameworkCore"/>
-        <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer"/>
+        <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL"/>
         <PackageReference Include="FastEndpoints"/>
     </ItemGroup>
 

@@ -276,7 +276,7 @@ public class AppointmentEndpointTests(TestingDatabaseFixture fixture) : Integrat
         repeated.CancelledUtc.Should().Be(original.CancelledUtc);
         repeated.Notes.Should().Be(original.Notes);
         repeated.CancellationReason.Should().Be(original.CancellationReason);
-        repeated.RowVersion.Should().Equal(original.RowVersion);
+        repeated.RowVersion.Should().Be(original.RowVersion);
         repeated.Status.Should().Be(action == "complete" ? AppointmentStatus.Completed : AppointmentStatus.Cancelled);
     }
 

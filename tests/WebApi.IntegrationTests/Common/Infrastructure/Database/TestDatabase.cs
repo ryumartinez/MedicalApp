@@ -1,5 +1,5 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Respawn;
 using MedicalApp.Common.Persistence;
 using System.Data.Common;
@@ -7,52 +7,46 @@ using System.Data.Common;
 namespace MedicalApp.IntegrationTests.Common.Infrastructure.Database;
 
 /// <summary>
-/// Manages the schema and data for the database container
+/// Manages the schema and data for the database container.
 /// </summary>
 public class TestDatabase : IAsyncDisposable
 {
-    private readonly SqlServerContainer _sqlServer = new();
+    private readonly PostgreSqlContainer _postgres = new();
     private Respawner _checkpoint = null!;
-    private string _connectionString = null!;
 
-    /// <summary>
-    /// Create and seed a database
-    /// </summary>
     public async Task InitializeAsync()
     {
-        await _sqlServer.InitializeAsync();
-
-        var builder = new SqlConnectionStringBuilder(_sqlServer.Connection!.ConnectionString)
-        {
-            InitialCatalog = "WebApi-IntegrationTests"
-        };
-
-        _connectionString = builder.ConnectionString;
+        await _postgres.InitializeAsync();
 
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(_connectionString)
+            .UseNpgsql(_postgres.ConnectionString)
             .Options;
 
-        using var dbContext = new ApplicationDbContext(options);
+        await using var dbContext = new ApplicationDbContext(options);
         await dbContext.Database.MigrateAsync();
 
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = new NpgsqlConnection(_postgres.ConnectionString);
         await connection.OpenAsync();
         _checkpoint = await Respawner.CreateAsync(connection,
-            new RespawnerOptions { TablesToIgnore = ["__EFMigrationsHistory"] });
+            new RespawnerOptions
+            {
+                DbAdapter = DbAdapter.Postgres,
+                SchemasToInclude = ["public"],
+                TablesToIgnore = ["__EFMigrationsHistory"]
+            });
     }
 
-    public DbConnection DbConnection => new SqlConnection(_connectionString);
+    public DbConnection DbConnection => new NpgsqlConnection(_postgres.ConnectionString);
 
     public async Task ResetAsync()
     {
-        await using var connection = new SqlConnection(_connectionString);
+        await using var connection = new NpgsqlConnection(_postgres.ConnectionString);
         await connection.OpenAsync();
         await _checkpoint.ResetAsync(connection);
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _sqlServer.DisposeAsync();
+        await _postgres.DisposeAsync();
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MigrationService;
 using MigrationService.Initializers;
@@ -21,7 +21,7 @@ builder.Services.AddScoped<EntitySaveChangesInterceptor>();
 builder.Services.AddScoped<ICurrentUserService, MigrationUserService>();
 builder.Services.AddSingleton(TimeProvider.System);
 
-builder.AddSqlServerDbContext<ApplicationDbContext>("AppDb",
+builder.AddNpgsqlDbContext<ApplicationDbContext>("AppDb",
     null,
     options =>
     {

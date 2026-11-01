@@ -61,7 +61,7 @@ Read more on [SSW Rules to Better Vertical Slice Architecture](https://www.ssw.c
     - as per [ssw.com.au/rules/use-fluent-validation/](https://ssw.com.au/rules/use-fluent-validation/)
 - 🆔 Strongly Typed IDs - to combat primitive obsession
     - e.g. pass `CustomerId` type into methods instead of `int`, or `Guid`
-    - Entity Framework can automatically convert the int, Guid, nvarchar(..) to strongly typed ID.
+    - Entity Framework can automatically convert the int, Guid, varchar(..) to strongly typed ID.
 - 📁 Directory.Build.Props
     - Consistent build configuration across all projects in the solution
         - e.g. Treating Warnings as Errors for Release builds
@@ -138,6 +138,19 @@ dotnet new ssw-vsa --name {{SolutionName}}
 
 2. Open https://localhost:7255/swagger in your browser to see it running ️🏃‍♂️
 
+
+### PostgreSQL database
+
+MedicalApp uses PostgreSQL through EF Core and the Aspire Npgsql integration.
+Aspire starts PostgreSQL 17 locally with persistent data and provisions Azure PostgreSQL Flexible Server for Azure deployments.
+The connection string resource remains `AppDb`.
+Aspire supplies database credentials through secret parameters.
+Integration tests use PostgreSQL 17 through Testcontainers and reset data with Respawn.
+
+The PostgreSQL migration baseline creates a fresh schema for the application.
+Existing SQL Server databases require a separate schema and data transfer before a production cutover.
+The provider change does not transfer or delete existing SQL Server data.
+
 ## Adding Features
 
 ### Adding a Feature Slice
@@ -210,7 +223,7 @@ the [Azure Developer CLI (AZD)](https://learn.microsoft.com/en-us/azure/develope
 This will setup the following:
 
 - Azure App Services: API + MigrationService
-- Azure SQL Server + Database: Data storage
+- Azure Database for PostgreSQL Flexible Server: Data storage
 - Application Insights + Log Analytics: For monitoring and logging
 - Managed Identities: For secure access to Azure resources
 - Azure Container Registry: For storing Docker images

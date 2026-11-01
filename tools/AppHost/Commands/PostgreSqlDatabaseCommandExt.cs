@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AppHost.Commands;
 
-public static class SqlServerDatabaseCommandExt
+public static class PostgreSqlDatabaseCommandExt
 {
-    public static IResourceBuilder<AzureSqlDatabaseResource> WithDropDatabaseCommand(
-        this IResourceBuilder<AzureSqlDatabaseResource> builder)
+    public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> WithDropDatabaseCommand(
+        this IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> builder)
     {
         builder.WithCommand(
             "drop-database",
@@ -18,8 +18,8 @@ public static class SqlServerDatabaseCommandExt
                 ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
                 var optionsBuilder = new DbContextOptionsBuilder<DbContext>();
-                optionsBuilder.UseSqlServer(connectionString);
-                var db = new DbContext(optionsBuilder.Options);
+                optionsBuilder.UseNpgsql(connectionString);
+                await using var db = new DbContext(optionsBuilder.Options);
                 await db.Database.EnsureDeletedAsync();
 
                 return CommandResults.Success();

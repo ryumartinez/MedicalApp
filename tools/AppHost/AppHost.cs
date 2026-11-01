@@ -18,21 +18,17 @@ builder.AddAzureAppServiceEnvironment("plan").ConfigureInfrastructure(infra =>
     };
 });
 
-var sqlServer = builder
-    .AddAzureSqlServer("sql")
+var postgres = builder
+    .AddAzurePostgresFlexibleServer("postgres")
+    .WithPasswordAuthentication()
     .RunAsContainer(container =>
     {
-        // Configure SQL Server to run locally as a container
         container.WithLifetime(ContainerLifetime.Persistent);
-
-        // Use SQL Server 2022 as the default of SQL Server 2025 doesn't work on Linux/MacOS
-        container.WithImage("mssql/server:2022-latest");
-
-        // If desired, set SQL Server Port to a constant value
-        //container.WithHostPort(1800);
+        container.WithImageTag("17");
+        container.WithDataVolume();
     });
 
-var db = sqlServer
+var db = postgres
     .AddDatabase("AppDb", "app-db")
     .WithDropDatabaseCommand();
 
@@ -53,7 +49,7 @@ var migrationService = builder.AddProject<MigrationService>("migrations")
         site.SiteConfig.AppSettings.Add(new BicepValue<AppServiceNameValuePair>(envSetting));
     })
     .WithReference(db)
-    .WaitFor(sqlServer);
+    .WaitFor(postgres);
 
 var api = builder
     .AddProject<WebApi>("api")

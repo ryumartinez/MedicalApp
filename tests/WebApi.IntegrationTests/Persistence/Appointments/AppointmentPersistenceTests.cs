@@ -47,7 +47,7 @@ public class AppointmentPersistenceTests : IntegrationTestBase
         saved.EndUtc.Kind.Should().Be(DateTimeKind.Utc);
         saved.CreatedBy.Should().NotBeNullOrWhiteSpace();
         saved.CreatedAt.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(10));
-        saved.RowVersion.Should().HaveCount(8);
+        saved.RowVersion.Should().NotBe(0u);
         saved.PopDomainEvents().Should().BeEmpty();
 
         saved.Complete("Completion notes", saved.EndUtc);

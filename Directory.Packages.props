@@ -11,8 +11,8 @@
          to in order to clear NU1903 (GHSA-hv8m-jj95-wg3x, high severity). -->
     <PackageVersion Include="MessagePack" Version="2.5.301" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppService" Version="13.4.3" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="13.4.3" />
-    <PackageVersion Include="EntityFrameworkCore.Exceptions.SqlServer" Version="8.1.3" />
+    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="13.4.3" />
+    <PackageVersion Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="10.0.1" />
     <PackageVersion Include="FastEndpoints.Swagger" Version="7.1.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
@@ -23,7 +23,7 @@
          enforced by transitive pinning. Matches the EF Core 10.0.9 pins. -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
-    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.4.3" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.3" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.4.7" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="ErrorOr" Version="2.0.1" />
@@ -43,7 +43,7 @@
   </ItemGroup>
   <ItemGroup Condition="$(IsAspireHost) == 'true'">
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.3" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.4.3" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.3" />
   </ItemGroup>
   <ItemGroup Condition="$(IsTestProject) == 'true'">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
@@ -57,7 +57,7 @@
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1" />
     <PackageVersion Include="Respawn" Version="7.0.0" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.9.0" />
     <PackageVersion Include="Polly" Version="8.6.5" />
   </ItemGroup>
 </Project>

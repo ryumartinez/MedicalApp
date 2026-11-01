@@ -48,9 +48,9 @@ public class BookAppointmentEndpoint(ApplicationDbContext dbContext, TimeProvide
         var doctorId = DoctorId.From(req.DoctorId);
         var patientId = PatientId.From(req.PatientId);
 
-        // Hold one update lock per doctor until commit. Concurrent bookings for that doctor wait here.
+        // Lock the doctor row until commit. Concurrent bookings for that doctor wait here.
         var doctor = await dbContext.Doctors
-            .FromSqlInterpolated($"SELECT * FROM [Doctors] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {req.DoctorId}")
+            .FromSqlInterpolated($"SELECT * FROM \"Doctors\" WHERE \"Id\" = {req.DoctorId} FOR UPDATE")
             .WithSpecification(DoctorSpec.ById(doctorId))
             .SingleOrDefaultAsync(ct);
         if (doctor is null)

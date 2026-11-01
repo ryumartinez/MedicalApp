@@ -6,14 +6,14 @@ A template for **.NET 10 + Vertical Slice Architecture + Aspire**. Each feature 
 
 ## Technology Stack
 
-- **.NET 10**, ASP.NET Core, EF Core (SQL Server)
+- **.NET 10**, ASP.NET Core, EF Core (PostgreSQL)
 - **FastEndpoints** — HTTP endpoints with strongly-typed request/response
 - **Aspire** — local orchestration, observability, service discovery
 - **Vogen** — strongly typed IDs
 - **Ardalis.Specification** — query specs
 - **ErrorOr** + **FluentValidation** — result & input handling
 - **Bogus** — dev seed data
-- **xUnit** + **Testcontainers** + **Respawn** — integration tests against a real SQL Server
+- **xUnit** + **Testcontainers** + **Respawn** — integration tests against a real PostgreSQL database
 
 ## Rules
 
@@ -32,7 +32,7 @@ Detailed conventions are in `.claude/rules/` (auto-loaded by Claude Code when ma
 aspire start
 ```
 
-Aspire provisions SQL Server (Docker/Podman), runs migrations and seeds via `tools/MigrationService`, then exposes the API at `https://localhost:7255/swagger` (FastEndpoints Swagger UI). The Aspire Dashboard opens automatically for traces and logs.
+Aspire provisions PostgreSQL (Docker/Podman), runs migrations and seeds via `tools/MigrationService`, then exposes the API at `https://localhost:7255/swagger` (FastEndpoints Swagger UI). The Aspire Dashboard opens automatically for traces and logs.
 
 ## Reference Slice
 

@@ -90,7 +90,7 @@ public class Appointment : AggregateRoot<AppointmentId>
         }
     }
 
-    public byte[] RowVersion { get; private set; } = [];
+    public uint RowVersion { get; private set; }
 
     public Patient Patient { get; private set; } = null!;
     public Doctor Doctor { get; private set; } = null!;

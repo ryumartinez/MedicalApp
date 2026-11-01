@@ -1,4 +1,4 @@
-using EntityFramework.Exceptions.SqlServer;
+using EntityFramework.Exceptions.PostgreSQL;
 using MedicalApp.Common.Persistence.Interceptors;
 
 namespace MedicalApp.Common.Persistence;
@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddScoped<DispatchDomainEventsInterceptor>();
         services.AddSingleton(TimeProvider.System);
 
-        builder.AddSqlServerDbContext<ApplicationDbContext>("AppDb",
+        builder.AddNpgsqlDbContext<ApplicationDbContext>("AppDb",
             null,
             options =>
             {
