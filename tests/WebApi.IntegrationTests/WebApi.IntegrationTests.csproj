@@ -27,4 +27,8 @@
         <ProjectReference Include="..\..\src\WebApi\WebApi.csproj"/>
         <ProjectReference Include="..\..\tools\MigrationService\MigrationService.csproj"/>
     </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\..\tools\AppHost\Keycloak\Realms\medicalapp-realm.json" Link="medicalapp-realm.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
 </Project>

@@ -22,6 +22,60 @@ namespace MedicalApp.Common.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MedicalApp.Common.Domain.ApplicationIdentities.ApplicationIdentity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorId")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId")
+                        .IsUnique();
+
+                    b.HasIndex("Issuer", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("ApplicationIdentities", t =>
+                        {
+                            t.HasCheckConstraint("CK_ApplicationIdentity_EnabledMapping", "NOT \"Enabled\" OR \"DoctorId\" IS NOT NULL OR \"PatientId\" IS NOT NULL");
+                        });
+                });
+
             modelBuilder.Entity("MedicalApp.Common.Domain.Appointments.Appointment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -84,6 +138,45 @@ namespace MedicalApp.Common.Persistence.Migrations
                     b.HasIndex("DoctorId", "StartUtc", "EndUtc");
 
                     b.ToTable("Appointments");
+                });
+
+            modelBuilder.Entity("MedicalApp.Common.Domain.DoctorPatientRelationships.DoctorPatientRelationship", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("DoctorId", "PatientId")
+                        .IsUnique();
+
+                    b.ToTable("DoctorPatientRelationships");
                 });
 
             modelBuilder.Entity("MedicalApp.Common.Domain.Doctors.Doctor", b =>
@@ -278,6 +371,19 @@ namespace MedicalApp.Common.Persistence.Migrations
                     b.ToTable("Teams");
                 });
 
+            modelBuilder.Entity("MedicalApp.Common.Domain.ApplicationIdentities.ApplicationIdentity", b =>
+                {
+                    b.HasOne("MedicalApp.Common.Domain.Doctors.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MedicalApp.Common.Domain.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("MedicalApp.Common.Domain.Appointments.Appointment", b =>
                 {
                     b.HasOne("MedicalApp.Common.Domain.Doctors.Doctor", "Doctor")
@@ -295,6 +401,21 @@ namespace MedicalApp.Common.Persistence.Migrations
                     b.Navigation("Doctor");
 
                     b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("MedicalApp.Common.Domain.DoctorPatientRelationships.DoctorPatientRelationship", b =>
+                {
+                    b.HasOne("MedicalApp.Common.Domain.Doctors.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MedicalApp.Common.Domain.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MedicalApp.Common.Domain.Heroes.Hero", b =>

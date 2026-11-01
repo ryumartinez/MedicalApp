@@ -5,18 +5,26 @@ All tasks remain unchecked because the features are unimplemented.
 Resolve the design's imported decision checkpoints before their affected work.
 The original four milestones determine the order of these groups.
 
+## Implementation handoff
+
+Authentication middleware and a protected FastEndpoints test are in place.
+Task 1.8 remains open until the progress endpoints exist and their access checks pass.
+The Keycloak fixture covers valid tokens, forged tokens, and ID tokens.
+Task 1.14 remains open for the other required token and key rotation checks.
+Provisioning recovery and the administrator endpoints remain unimplemented.
+
 ## 1. Milestone 1 — Identity and access
 
-- [ ] 1.1 Pin compatible official Aspire Keycloak packages and a documented image version. Validate package restore and AppHost/WebApi builds.
-- [ ] 1.2 Record the agreed provisioning workflow, trusted tool, and staff permissions. Deliver the decision entry before provisioning implementation.
-- [ ] 1.3 Record treatment and plan grant management rules, including whether treatment revocation closes plans. Deliver explicit access and closure examples.
-- [ ] 1.4 Record token lifetime, refresh session policy, and permitted revocation delay. Deliver matching realm configuration requirements.
-- [ ] 1.5 Add official Keycloak hosting with stable port, persistent volume, readiness, secrets, and OTLP telemetry. Validate those resources through Aspire.
-- [ ] 1.6 Add local realm, client, role, and audience initialization with explicit reconciliation. Validate fresh startup and restart without account loss.
-- [ ] 1.7 Register `AddKeycloakJwtBearer`, raw claims, and production HTTPS authority validation. Validate real-token acceptance and invalid-token rejection.
+- [x] 1.1 Pin compatible official Aspire Keycloak packages and a documented image version. Validate package restore and AppHost/WebApi builds.
+- [x] 1.2 Record the agreed provisioning workflow, trusted tool, and staff permissions. Deliver the decision entry before provisioning implementation.
+- [x] 1.3 Record treatment and plan grant management rules, including whether treatment revocation closes plans. Deliver explicit access and closure examples.
+- [x] 1.4 Record token lifetime, refresh session policy, and permitted revocation delay. Deliver matching realm configuration requirements.
+- [x] 1.5 Add official Keycloak hosting with stable port, persistent volume, readiness, secrets, and OTLP telemetry. Validate those resources through Aspire.
+- [x] 1.6 Add local realm, client, role, and audience initialization with explicit reconciliation. Validate fresh startup and restart without account loss.
+- [x] 1.7 Register `AddKeycloakJwtBearer`, raw claims, and production HTTPS authority validation. Validate real-token acceptance and invalid-token rejection.
 - [ ] 1.8 Add authentication and authorization middleware before FastEndpoints. Validate protected progress requests require authentication when their endpoints exist.
-- [ ] 1.9 Add identity and treatment domain types, Vogen IDs, and invariants. Validate domain unit tests and converter registration.
-- [ ] 1.10 Add identity persistence, unique mapping constraints, and an EF migration. Validate PostgreSQL uniqueness and relationship integration tests.
+- [x] 1.9 Add identity and treatment domain types, Vogen IDs, and invariants. Validate domain unit tests and converter registration.
+- [x] 1.10 Add identity persistence, unique mapping constraints, and an EF migration. Validate PostgreSQL uniqueness and relationship integration tests.
 - [ ] 1.11 Implement trusted provisioning recovery with disabled incomplete mappings. Validate retries create no duplicate mappings or domain records.
 - [ ] 1.12 Add API role normalization, current identity resolution, and stable audit mapping. Validate unrelated roles, dual roles, and audit identifiers.
 - [ ] 1.13 Add shared ownership, treatment, patient, and plan grant authorization policies. Validate disabled mappings, revoked treatment, and cross-patient denials.
@@ -25,6 +33,7 @@ The original four milestones determine the order of these groups.
 - [ ] 1.16 Add idempotent development identity and treatment seeds through `MigrationService`. Validate stable subjects and development-only execution after migrations.
 - [ ] 1.17 Document credentials, provisioning recovery, realm reconciliation, issuer configuration, and restart behavior under `tools/AppHost/Keycloak/`. Validate the local procedure.
 - [ ] 1.18 Guard local realm import from production publication. Validate the production configuration requires explicit HTTPS authority without development file injection.
+- [ ] 1.19 Add administrator-only account provisioning endpoints and the administrator API role. Validate account creation, linking, role assignment, disablement, recovery, and unauthorized requests.
 
 ## 2. Milestone 1 — Garage foundations
 
@@ -65,6 +74,7 @@ The original four milestones determine the order of these groups.
 - [ ] 5.4 Add `GetProgressPlan` and `GetPatientProgressPlans` with scoped queries. Validate patient ownership and doctor grant-plus-treatment requirements.
 - [ ] 5.5 Add plan closure domain behavior without losing entries. Validate closed plans reject new draft changes and submissions.
 - [ ] 5.6 Document assignment replacement and plan access through endpoint summaries. Validate earlier assignments remain tied to their published version.
+- [ ] 5.7 Add administrator-only treatment and plan grant management endpoints. Validate active treatment and explicit grants govern access, and unauthorized requests change no data.
 
 ## 6. Milestone 3 — Draft entries and answer validation
 
@@ -98,6 +108,7 @@ The original four milestones determine the order of these groups.
 - [ ] 8.7 Add scheduled expiration and abandoned object cleanup with database claims. Validate cleanup cannot delete media attached by concurrent submission.
 - [ ] 8.8 Add retryable object deletion after cleanup state coordination. Validate failures preserve submitted media and permit abandoned-object recovery.
 - [ ] 8.9 Document submission, `409`, closure, and cleanup behavior through summaries and operational guidance. Validate the shared transaction acceptance scenarios.
+- [ ] 8.10 Coordinate treatment revocation with closure of the affected doctor's plans. Validate submission races, preserved entries, and unchanged plans owned by other doctors.
 
 ## 9. Milestone 4 — History and summaries
 

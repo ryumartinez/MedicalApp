@@ -1,4 +1,5 @@
 using AppHost.Commands;
+using AppHost.Keycloak;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Projects;
@@ -25,7 +26,7 @@ var postgres = builder
     {
         container.WithLifetime(ContainerLifetime.Persistent);
         container.WithImageTag("17");
-        container.WithDataVolume();
+        container.WithDataVolume(builder.Configuration["Postgres:DataVolume"]);
     });
 
 var db = postgres
@@ -56,6 +57,26 @@ var api = builder
     .WithExternalHttpEndpoints()
     .WithReference(db)
     .WaitForCompletion(migrationService);
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    var keycloak = builder.AddKeycloak("keycloak", 8080)
+        .WithImageTag(KeycloakImage.Tag)
+        .WithDataVolume(builder.Configuration["Keycloak:DataVolume"])
+        .WithRealmImport("./Keycloak/Realms")
+        .WithEnabledFeatures("persistent-user-sessions")
+        .WithOtlpExporter();
+
+    var keycloakInitializer = builder.AddProject<KeycloakInitializer>("keycloak-init")
+        .WithEnvironment("KEYCLOAK_ENDPOINT", keycloak.GetEndpoint("http"))
+        .WithEnvironment(context =>
+        {
+            context.EnvironmentVariables["KEYCLOAK_ADMIN_PASSWORD"] = keycloak.Resource.AdminPasswordParameter;
+        })
+        .WaitFor(keycloak);
+
+    api.WithReference(keycloak).WaitForCompletion(keycloakInitializer);
+}
 
 // Configure Application Insights and Log Analytics only if in publish mode
 // When running locally, use Aspire Dashboard instead

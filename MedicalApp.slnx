@@ -5,5 +5,6 @@
   <Project Path="tests/WebApi.IntegrationTests/WebApi.IntegrationTests.csproj" />
   <Project Path="tests/WebApi.UnitTests/WebApi.UnitTests.csproj" />
   <Project Path="tools/AppHost/AppHost.csproj" />
+  <Project Path="tools/KeycloakInitializer/KeycloakInitializer.csproj" />
   <Project Path="tools/MigrationService/MigrationService.csproj" />
 </Solution>

@@ -46,7 +46,7 @@ Local HTTP metadata MUST require explicit development configuration.
 
 ### Requirement: Scope roles to the API client
 
-The API SHALL read doctor and patient roles only from `resource_access.medicalapp-api.roles` in a validated token.
+The API SHALL read doctor, patient, and administrator roles only from `resource_access.medicalapp-api.roles` in a validated token.
 One account can hold both roles.
 Unrelated client roles and Keycloak administrative roles MUST NOT grant application permissions.
 
@@ -59,6 +59,11 @@ Unrelated client roles and Keycloak administrative roles MUST NOT grant applicat
 
 - **WHEN** A caller has both API roles and enabled doctor and patient mappings.
 - **THEN** The caller can use each role within its corresponding resource scope.
+
+#### Scenario: Require the administrator API role
+
+- **WHEN** A caller requests an administrator operation without the administrator API role.
+- **THEN** The API denies the operation and changes no account, treatment relationship, or grant.
 
 ### Requirement: Map identity through issuer and subject
 
@@ -99,6 +104,16 @@ Client fields and custom identity headers MUST NOT select the acting doctor or p
 - **WHEN** A patient supplies another patient's identifier through an acting identity field or custom header.
 - **THEN** The API uses the caller's mapped identity and grants no additional access.
 
+### Requirement: Provide administrator account endpoints
+
+The API SHALL provide administrator endpoints for account creation, linking, role assignment, disablement, and recovery.
+Only designated administrators with the administrator API role MUST use these endpoints.
+
+#### Scenario: Reject unauthorized provisioning
+
+- **WHEN** A caller without administrator authorization requests an account operation.
+- **THEN** The API changes no account, role, or mapping.
+
 ### Requirement: Provision accounts through trusted staff operations
 
 The first release SHALL use staff-managed accounts with self-registration disabled.
@@ -116,6 +131,26 @@ Doctor and patient request payloads MUST NOT assign roles or change account mapp
 
 - **WHEN** An operator provisions, links, disables, or recovers an account.
 - **THEN** A documented procedure identifies the required trusted permissions and recovery steps.
+
+### Requirement: Manage treatment and plan access through administrator endpoints
+
+The API SHALL provide administrator endpoints to create and revoke treatment relationships and plan access grants.
+Only designated administrators with the administrator API role MUST use these endpoints.
+Revoking a treatment relationship MUST close the affected doctor's plans for that patient.
+The operation MUST preserve plan entries and coordinate with concurrent draft changes and submissions.
+Plans owned by other doctors MUST remain unchanged.
+
+#### Scenario: Revoke an owner's treatment relationship
+
+- **WHEN** An administrator revokes a doctor's treatment relationship with a patient.
+- **THEN** The doctor's active plans for that patient close and retain their entries.
+- **AND** Other doctors' plans for the patient remain unchanged.
+
+#### Scenario: Revoke a reviewing doctor's treatment relationship
+
+- **WHEN** An administrator revokes the treatment relationship of a doctor who has a grant to another doctor's plan.
+- **THEN** The reviewing doctor loses treatment-based access.
+- **AND** The other doctor's plan remains open.
 
 ### Requirement: Require treatment access for doctor operations
 

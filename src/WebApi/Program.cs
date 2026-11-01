@@ -11,6 +11,7 @@ builder.AddServiceDefaults();
 builder.Services.AddCustomProblemDetails();
 
 builder.AddWebApi();
+builder.AddKeycloakAuthentication();
 builder.AddApplication();
 builder.AddInfrastructure();
 
@@ -31,6 +32,8 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCustomFastEndpoints();
 app.UseSwaggerGen();
 app.UseEventualConsistencyMiddleware();

@@ -115,7 +115,7 @@ Retain these proposed first-release defaults:
 |---|---|
 | Realm | `medicalapp` |
 | API client and audience | `medicalapp-api` |
-| API client roles | `doctor`, `patient` |
+| API client roles | `doctor`, `patient`, `administrator` |
 | Development Swagger client | `medicalapp-swagger`, public client with authorization code flow and PKCE |
 | Future frontend client | `medicalapp-web`, configured by the separate frontend plan |
 | Stable local port | `8080` |
@@ -195,10 +195,37 @@ Appointments and matching email addresses do not establish access.
 Apply database-backed access restrictions to queries before returning data.
 Use the specified `401`, `403`, and scoped `404` response behavior consistently.
 
-Staff-managed provisioning remains the proposed workflow.
-The operator procedure must cover creation, role assignment, linking, disabling, and recovery.
-Keep mappings disabled until provisioning finishes because Keycloak and PostgreSQL have no shared transaction.
+Designated administrators use an administrator portal for account provisioning.
+They create accounts, assign doctor and patient roles, link application records, disable accounts, and recover incomplete provisioning.
+This change supplies the administrator API endpoints.
+The administrator portal frontend belongs to separate work.
+Administrator operations require the `administrator` API client role.
+Keycloak administrative roles alone do not grant access to these operations.
+The API keeps its Keycloak management credentials private.
+The operator procedure covers each of these operations.
+The application keeps mappings disabled until provisioning finishes because Keycloak and PostgreSQL do not share a transaction.
 Patients and doctors cannot provision their own roles or mappings through progress payloads.
+
+Designated administrators create and revoke treatment relationships and plan access grants through the API.
+A plan grant does not replace an active treatment relationship.
+When an administrator revokes treatment, the affected doctor's active plans for that patient close.
+These plans retain their entries, and plans owned by other doctors remain unchanged.
+A reviewing doctor loses access to another doctor's plan when their treatment relationship ends.
+That other doctor's plan remains open.
+Treatment revocation uses the shared coordination protocol for plan closure, draft changes, and submissions.
+
+Keycloak issues access tokens with a five-minute lifetime.
+Refresh sessions expire after 30 minutes of inactivity or eight hours in total.
+The realm sets `accessTokenLifespan` to 300 seconds, `ssoSessionIdleTimeout` to 1800 seconds, and `ssoSessionMaxLifespan` to 28800 seconds.
+Client overrides must not extend those limits.
+Keycloak uses persistent user sessions to prevent the two-minute idle timeout grace period.
+Application clients do not allow offline access.
+Logout and account disablement must prevent refresh sessions from issuing new access tokens.
+New tokens must reflect current role assignments.
+JWT validation must not add clock skew to token expiration.
+After Keycloak logout, disablement, or role removal, an issued token can grant access for at most five minutes.
+Application identity disablement and treatment revocation take effect at the next authorization check.
+Signed storage URLs follow their separate expiration policy.
 
 Production cannot depend on `WithRealmImport` development file injection.
 Preserve the existing publication path with local initialization guarded from publish and deploy operations.
@@ -321,10 +348,10 @@ Resolve behavior-affecting choices with the user before the affected implementat
 
 | Checkpoint | Imported decision | Effect on future work |
 |---|---|---|
-| Milestone 1 identity | Accept or revise staff-managed provisioning, select the trusted tool, and define staff permissions | Finalize provisioning operations and the operator procedure |
-| Milestone 1 access | Define treatment creation, revocation, and plan grant management | Finalize trusted management paths and persisted grants |
-| Before plan closure behavior | Decide whether treatment revocation also ends existing patient plans | Keep access revocation distinct from an unspecified automatic closure rule |
-| Milestone 1 tokens | Select access token lifetime, refresh session policy, and permitted revocation delay | Configure and document the delay for already issued tokens |
+| Milestone 1 identity | Designated administrators provision accounts through administrator API endpoints | Implement the endpoints and operator procedure; the portal frontend remains separate |
+| Milestone 1 access | Designated administrators create and revoke treatment relationships and plan grants | Implement administrator endpoints and persisted grants |
+| Before plan closure behavior | Treatment revocation closes only the affected doctor's plans for that patient | Preserve other doctors' plans and coordinate closure with entry changes |
+| Milestone 1 tokens | Five-minute access tokens; 30-minute idle and eight-hour maximum refresh sessions; five-minute maximum token revocation delay | Configure realm limits and token validation without extending expiration |
 | Milestone 1 dependencies | Select compatible Keycloak packages and image, plus Garage image and configuration | Pin validated versions without assuming source examples match current APIs |
 | Milestone 1 scheduling | Define deterministic ambiguous and invalid local boundary handling | Add explicit timezone boundary examples before schedule implementation |
 | Milestone 2 forms | Select form size, question count, text lengths, choice count, and option label limits | Define shared constants, validation, and persistence limits |

@@ -5,6 +5,10 @@ public class HeroesGroup : Group
     public HeroesGroup()
     {
         // NOTE: The prefix is used as the tag and group name
-        base.Configure("heroes", ep => ep.Description(x => x.ProducesProblemDetails(500)));
+        base.Configure("heroes", ep =>
+        {
+            ep.AllowAnonymous();
+            ep.Description(x => x.ProducesProblemDetails(500));
+        });
     }
 }

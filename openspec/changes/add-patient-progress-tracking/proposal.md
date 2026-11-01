@@ -10,6 +10,7 @@ The existing [release plan](../../../specs/patient-progress-tracking.md) describ
 This change imports the existing proposal into the OpenSpec workflow and preserves its first-release scope:
 
 - Authenticate doctors and patients through Keycloak, with application identity mappings and treatment access policies.
+- Provide administrator API endpoints for account provisioning, treatment relationships, and plan access grants.
 - Let doctors create form drafts, duplicate forms, and publish immutable versions with five question types.
 - Assign published versions to patients with daily or weekly schedules and timezone-aware reporting periods.
 - Let patients save draft answers and submit immutable entries with retries and concurrency protection.
@@ -22,7 +23,8 @@ This active change owns the proposed requirements, design, and unchecked impleme
 The conversion does not mark features as implemented or create baseline specifications under `openspec/specs/`.
 Source defaults remain proposed, and unresolved decisions remain explicit in the design.
 
-Frontend implementation, reminders, feedback, submission corrections, conditional questions, advanced reports, and production deployment plans require separate work.
+The administrator portal frontend and other frontend implementation require separate work.
+Reminders, feedback, submission corrections, conditional questions, advanced reports, and production deployment plans also require separate work.
 
 ## Capabilities
 

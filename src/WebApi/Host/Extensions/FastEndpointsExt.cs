@@ -18,8 +18,6 @@ public static class FastEndpointsExt
                 // Add global post-processors
                 ep.PostProcessor<PerformancePostProcessor>(Order.After);
 
-                // TODO: Configure your authentication provider here
-                ep.AllowAnonymous();
             };
 
             config.Errors.UseProblemDetails();

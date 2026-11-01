@@ -19,6 +19,7 @@
         <PackageReference Include="Vogen"/>
         <PackageReference Include="Ardalis.Specification.EntityFrameworkCore"/>
         <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL"/>
+        <PackageReference Include="Aspire.Keycloak.Authentication"/>
         <PackageReference Include="FastEndpoints"/>
     </ItemGroup>
 

@@ -1,0 +1,99 @@
+{
+  "realm": "medicalapp",
+  "enabled": true,
+  "registrationAllowed": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "ssoSessionIdleTimeoutRememberMe": 0,
+  "ssoSessionMaxLifespanRememberMe": 0,
+  "clientSessionIdleTimeout": 0,
+  "clientSessionMaxLifespan": 0,
+  "roles": {
+    "client": {
+      "medicalapp-api": [
+        { "name": "doctor" },
+        { "name": "patient" },
+        { "name": "administrator" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "medicalapp-api",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "300",
+        "client.session.idle.timeout": "1800",
+        "client.session.max.lifespan": "28800"
+      },
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "medicalapp-swagger",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [ "https://localhost:7255/swagger/oauth2-redirect.html" ],
+      "webOrigins": [ "https://localhost:7255" ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "access.token.lifespan": "300",
+        "client.session.idle.timeout": "1800",
+        "client.session.max.lifespan": "28800"
+      },
+      "defaultClientScopes": [ "basic", "roles" ],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "medicalapp-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "medicalapp-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "01967a92-2ff8-7a00-8000-000000000001",
+      "username": "development-doctor",
+      "firstName": "Development",
+      "lastName": "Doctor",
+      "email": "doctor@example.invalid",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [ "UPDATE_PASSWORD" ],
+      "clientRoles": { "medicalapp-api": [ "doctor" ] }
+    },
+    {
+      "id": "01967a92-2ff8-7a00-8000-000000000002",
+      "username": "development-patient",
+      "firstName": "Development",
+      "lastName": "Patient",
+      "email": "patient@example.invalid",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [ "UPDATE_PASSWORD" ],
+      "clientRoles": { "medicalapp-api": [ "patient" ] }
+    }
+  ]
+}

@@ -124,6 +124,8 @@ Future periods and periods after a plan ends MUST NOT count as missed.
 Plan closure SHALL stop subsequent draft changes and submissions while preserving existing entries.
 Closure MUST coordinate with the submission transaction defined by `patient-progress-tracking/entries-and-submission`.
 A concurrent closure MUST NOT permit a new submission after closure commits.
+Revoking a doctor's treatment relationship MUST close that doctor's active plans for the patient.
+The revocation MUST NOT close plans owned by other doctors.
 
 #### Scenario: Close a plan with historical entries
 
@@ -136,6 +138,12 @@ A concurrent closure MUST NOT permit a new submission after closure commits.
 - **WHEN** Plan closure and a submission attempt run concurrently.
 - **THEN** The committed result follows a consistent order.
 - **AND** A submission does not commit after closure has already committed.
+
+#### Scenario: Close only the affected doctor's plans
+
+- **WHEN** An administrator revokes one doctor's treatment relationship with a patient.
+- **THEN** The doctor's plans for that patient close and retain their entries.
+- **AND** Plans owned by other doctors remain unchanged.
 
 ### Requirement: Detect conflicting plan updates
 

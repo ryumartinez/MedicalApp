@@ -1,6 +1,8 @@
 using MedicalApp.Common.Domain.Heroes;
 using MedicalApp.Common.Domain.Teams;
 using MedicalApp.Common.Domain.Appointments;
+using MedicalApp.Common.Domain.ApplicationIdentities;
+using MedicalApp.Common.Domain.DoctorPatientRelationships;
 using DoctorId = MedicalApp.Common.Domain.Doctors.DoctorId;
 using PatientId = MedicalApp.Common.Domain.Patients.PatientId;
 
@@ -14,4 +16,6 @@ namespace MedicalApp.Common.Persistence;
 [EfCoreConverter<AppointmentId>]
 [EfCoreConverter<DoctorId>]
 [EfCoreConverter<PatientId>]
+[EfCoreConverter<ApplicationIdentityId>]
+[EfCoreConverter<DoctorPatientRelationshipId>]
 internal sealed partial class VogenEfCoreConverters;
