@@ -6,6 +6,9 @@ Doctors create custom forms and assign them to patients. Patients submit answers
 
 The first release supports structured answers, images, and videos. Garage provides private S3-compatible storage. Aspire provides local orchestration from milestone 1.
 
+PostgreSQL stores application data through EF Core and the Aspire Npgsql integration.
+Integration tests use PostgreSQL through Testcontainers and reset data with Respawn.
+
 ## Specification map
 
 This parent spec owns the release scope, shared repository conventions, milestones, and end-to-end acceptance scenarios.
