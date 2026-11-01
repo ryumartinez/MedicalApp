@@ -50,6 +50,8 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         await _dbContext.SaveChangesAsync(CancellationToken);
     }
 
+    protected IServiceScope CreateScope() => _fixture.CreateScope();
+
     protected HttpClient GetAnonymousClient() => _fixture.AnonymousClient.Value;
 
     protected CancellationToken CancellationToken => TestContext.Current.CancellationToken;

@@ -23,6 +23,7 @@
         <ProjectReference Include="..\..\src\WebApi\WebApi.csproj"/>
         <ProjectReference Include="..\MigrationService\MigrationService.csproj"/>
         <ProjectReference Include="..\KeycloakInitializer\KeycloakInitializer.csproj"/>
+        <ProjectReference Include="..\GarageInitializer\GarageInitializer.csproj"/>
     </ItemGroup>
 
 </Project>

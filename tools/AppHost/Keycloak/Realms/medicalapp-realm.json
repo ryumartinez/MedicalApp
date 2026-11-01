@@ -12,9 +12,15 @@
   "roles": {
     "client": {
       "medicalapp-api": [
-        { "name": "doctor" },
-        { "name": "patient" },
-        { "name": "administrator" }
+        {
+          "name": "doctor"
+        },
+        {
+          "name": "patient"
+        },
+        {
+          "name": "administrator"
+        }
       ]
     }
   },
@@ -47,15 +53,22 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "fullScopeAllowed": true,
-      "redirectUris": [ "https://localhost:7255/swagger/oauth2-redirect.html" ],
-      "webOrigins": [ "https://localhost:7255" ],
+      "redirectUris": [
+        "https://localhost:7255/swagger/oauth2-redirect.html"
+      ],
+      "webOrigins": [
+        "https://localhost:7255"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "300",
         "client.session.idle.timeout": "1800",
         "client.session.max.lifespan": "28800"
       },
-      "defaultClientScopes": [ "basic", "roles" ],
+      "defaultClientScopes": [
+        "basic",
+        "roles"
+      ],
       "optionalClientScopes": [],
       "protocolMappers": [
         {
@@ -70,6 +83,22 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "medicalapp-provisioning",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "access.token.lifespan": "300"
+      },
+      "optionalClientScopes": []
     }
   ],
   "users": [
@@ -81,8 +110,14 @@
       "email": "doctor@example.invalid",
       "emailVerified": true,
       "enabled": true,
-      "requiredActions": [ "UPDATE_PASSWORD" ],
-      "clientRoles": { "medicalapp-api": [ "doctor" ] }
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "clientRoles": {
+        "medicalapp-api": [
+          "doctor"
+        ]
+      }
     },
     {
       "id": "01967a92-2ff8-7a00-8000-000000000002",
@@ -92,8 +127,31 @@
       "email": "patient@example.invalid",
       "emailVerified": true,
       "enabled": true,
-      "requiredActions": [ "UPDATE_PASSWORD" ],
-      "clientRoles": { "medicalapp-api": [ "patient" ] }
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "clientRoles": {
+        "medicalapp-api": [
+          "patient"
+        ]
+      }
+    },
+    {
+      "id": "01967a92-2ff8-7a00-8000-000000000003",
+      "username": "development-administrator",
+      "firstName": "Development",
+      "lastName": "Administrator",
+      "email": "administrator@example.invalid",
+      "emailVerified": true,
+      "enabled": true,
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "clientRoles": {
+        "medicalapp-api": [
+          "administrator"
+        ]
+      }
     }
   ]
 }

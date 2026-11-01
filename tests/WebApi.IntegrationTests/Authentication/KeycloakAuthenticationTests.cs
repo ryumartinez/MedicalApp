@@ -1,8 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using FastEndpoints;
+using MedicalApp.Common.Authentication;
 using MedicalApp.Common.Interfaces;
 using MedicalApp.Common.Services;
 using MedicalApp.Host.Extensions;
@@ -37,12 +39,14 @@ public sealed class KeycloakAuthenticationTests : IAsyncLifetime
         {
             options.DisableAutoDiscovery = true;
             options.Assemblies = [typeof(ProtectedTestEndpoint).Assembly];
+            options.Filter = type => type == typeof(ProtectedTestEndpoint);
         });
         _app = builder.Build();
         _app.UseAuthentication();
         _app.UseAuthorization();
         _app.UseCustomFastEndpoints();
         _app.MapGet("/protected", (ClaimsPrincipal principal) => Results.Ok(principal.FindFirst("sub")?.Value)).RequireAuthorization();
+        _app.MapGet("/roles", (ClaimsPrincipal principal) => Results.Ok(principal.FindAll(ApiRoles.ClaimType).Select(c => c.Value).ToArray())).RequireAuthorization();
         await _app.StartAsync();
     }
 
@@ -67,6 +71,8 @@ public sealed class KeycloakAuthenticationTests : IAsyncLifetime
         using var valid = await client.GetAsync("/protected", cancellationToken);
         valid.StatusCode.Should().Be(HttpStatusCode.OK, "the authentication challenge was {0}", string.Join(", ", valid.Headers.WwwAuthenticate));
         (await valid.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("01967a92-2ff8-7a00-8000-000000000001");
+        var roles = await client.GetFromJsonAsync<string[]>("/roles", cancellationToken);
+        roles.Should().BeEquivalentTo([ApiRoles.Doctor]);
         using var authorizedEndpoint = await client.GetAsync("/api/protected-test", cancellationToken);
         authorizedEndpoint.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -79,6 +85,76 @@ public sealed class KeycloakAuthenticationTests : IAsyncLifetime
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", forged);
         using var invalid = await client.GetAsync("/protected", cancellationToken);
         invalid.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RejectsTokensFromAnotherRealm()
+    {
+        await _keycloak.CreateRealmCopyAsync("other");
+        var (accessToken, _) = await _keycloak.GetTokensAsync("development-doctor", realm: "other");
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        jwt.Issuer.Should().EndWith("/realms/other");
+        jwt.Audiences.Should().Contain("medicalapp-api");
+
+        (await GetStatusAsync(accessToken)).Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RejectsTokensWithoutApiAudience()
+    {
+        await _keycloak.CreateTestClientAsync("test-no-audience", apiAudience: false);
+        var (accessToken, _) = await _keycloak.GetTokensAsync("development-doctor", "test-no-audience");
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        jwt.Issuer.Should().Be(_keycloak.Issuer);
+        jwt.Audiences.Should().NotContain("medicalapp-api");
+
+        (await GetStatusAsync(accessToken)).Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RejectsExpiredTokensWithoutClockSkew()
+    {
+        await _keycloak.CreateTestClientAsync("test-short-lived", apiAudience: true, accessTokenLifespanSeconds: 3);
+        var (accessToken, _) = await _keycloak.GetTokensAsync("development-doctor", "test-short-lived");
+        var expires = new JwtSecurityTokenHandler().ReadJwtToken(accessToken).ValidTo;
+        (await GetStatusAsync(accessToken)).Should().Be(HttpStatusCode.OK);
+
+        var wait = expires - DateTime.UtcNow + TimeSpan.FromSeconds(1);
+        if (wait > TimeSpan.Zero)
+            await Task.Delay(wait, TestContext.Current.CancellationToken);
+
+        (await GetStatusAsync(accessToken)).Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task AcceptsTokensSignedWithRotatedKey()
+    {
+        var (before, _) = await _keycloak.GetTokensAsync();
+        (await GetStatusAsync(before)).Should().Be(HttpStatusCode.OK);
+
+        await _keycloak.RotateSigningKeyAsync();
+        var (after, _) = await _keycloak.GetTokensAsync();
+        var handler = new JwtSecurityTokenHandler();
+        handler.ReadJwtToken(after).Header.Kid.Should().NotBe(handler.ReadJwtToken(before).Header.Kid);
+
+        // An unknown key ID makes the API refresh discovery metadata. Allow the refresh to finish.
+        var status = HttpStatusCode.Unauthorized;
+        for (var attempt = 0; attempt < 20 && status != HttpStatusCode.OK; attempt++)
+        {
+            status = await GetStatusAsync(after);
+            if (status != HttpStatusCode.OK)
+                await Task.Delay(500, TestContext.Current.CancellationToken);
+        }
+
+        status.Should().Be(HttpStatusCode.OK);
+    }
+
+    private async Task<HttpStatusCode> GetStatusAsync(string accessToken)
+    {
+        using var client = _app.GetTestClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await client.GetAsync("/protected", TestContext.Current.CancellationToken);
+        return response.StatusCode;
     }
 
     public async ValueTask DisposeAsync()

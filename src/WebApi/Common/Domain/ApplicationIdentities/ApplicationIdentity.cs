@@ -54,12 +54,24 @@ public class ApplicationIdentity : Entity<ApplicationIdentityId>
 
     private ApplicationIdentity() { }
 
-    public static ApplicationIdentity Create(string issuer, string subject) => new()
+    public static ApplicationIdentity Create(string issuer, string subject) =>
+        Create(ApplicationIdentityId.From(Guid.CreateVersion7()), issuer, subject);
+
+    /// <summary>
+    /// Creates a disabled identity with an ID chosen earlier, such as the provisioning marker on the identity provider account.
+    /// </summary>
+    public static ApplicationIdentity Create(ApplicationIdentityId id, string issuer, string subject)
     {
-        Id = ApplicationIdentityId.From(Guid.CreateVersion7()),
-        Issuer = issuer,
-        Subject = subject
-    };
+        if (id.Value == Guid.Empty)
+            throw new ArgumentException("Identity ID is required.", nameof(id));
+
+        return new ApplicationIdentity
+        {
+            Id = id,
+            Issuer = issuer,
+            Subject = subject
+        };
+    }
 
     public void LinkDoctor(DoctorId doctorId)
     {

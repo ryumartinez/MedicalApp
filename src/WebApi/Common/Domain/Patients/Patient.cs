@@ -11,6 +11,7 @@ public class Patient : Entity<PatientId>
     public const int FullNameMaxLength = 100;
     public const int EmailMaxLength = 254;
     public const int PhoneMaxLength = 17;
+    public const string PhonePattern = @"^[\+]?[1-9]?[\d\s\-\(\)\.]{10,15}$";
 
     public string FullName
     {
@@ -45,7 +46,7 @@ public class Patient : Entity<PatientId>
             ThrowIfNullOrWhiteSpace(value, nameof(Phone));
             var phone = value.Trim();
             ThrowIfGreaterThan(phone.Length, PhoneMaxLength, nameof(Phone));
-            if (!Regex.IsMatch(phone, @"^[\+]?[1-9]?[\d\s\-\(\)\.]{10,15}$"))
+            if (!Regex.IsMatch(phone, PhonePattern))
                 throw new ArgumentException("Invalid phone format", nameof(Phone));
 
             field = phone;
