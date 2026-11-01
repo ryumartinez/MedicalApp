@@ -1,4 +1,4 @@
-﻿using FastEndpoints.Swagger;
+﻿using MedicalApp.Common.Authorization;
 using MedicalApp.Common.Interfaces;
 using MedicalApp.Common.Services;
 
@@ -13,12 +13,12 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ICurrentIdentityService, CurrentIdentityService>();
+        services.AddScoped<ProgressAuthorizationService>();
 
         services.AddOpenApi();
 
         services.AddFastEndpoints();
-
-        builder.Services.SwaggerDocument();
     }
 
     public static void AddApplication(this IHostApplicationBuilder builder)

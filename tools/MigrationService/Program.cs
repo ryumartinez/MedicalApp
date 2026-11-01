@@ -17,6 +17,8 @@ builder.Services
     .WithTracing(tracing => tracing.AddSource(Worker.ActivitySourceName));
 
 builder.Services.AddScoped<ApplicationDbContextInitializer>();
+builder.Services.AddScoped<ProgressIdentityInitializer>();
+builder.Services.AddScoped<ProgressWorkflowInitializer>();
 builder.Services.AddScoped<EntitySaveChangesInterceptor>();
 builder.Services.AddScoped<ICurrentUserService, MigrationUserService>();
 builder.Services.AddSingleton(TimeProvider.System);

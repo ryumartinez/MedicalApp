@@ -8,4 +8,11 @@ public sealed class ApplicationIdentitySpec : SingleResultSpecification<Applicat
         spec.Query.Where(identity => identity.Issuer == issuer && identity.Subject == subject);
         return spec;
     }
+
+    public static ApplicationIdentitySpec ById(ApplicationIdentityId id)
+    {
+        var spec = new ApplicationIdentitySpec();
+        spec.Query.Where(identity => identity.Id == id);
+        return spec;
+    }
 }
