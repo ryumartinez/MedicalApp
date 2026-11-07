@@ -1,7 +1,7 @@
 using System.Reflection;
-using FastEndpoints.Swagger;
 using MedicalApp.Host.Extensions;
 using MedicalApp.Host;
+using MedicalApp.Common.Storage;
 
 var appAssembly = Assembly.GetExecutingAssembly();
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +11,11 @@ builder.AddServiceDefaults();
 builder.Services.AddCustomProblemDetails();
 
 builder.AddWebApi();
+builder.AddKeycloakAuthentication();
+builder.AddKeycloakSwagger();
 builder.AddApplication();
 builder.AddInfrastructure();
+builder.AddObjectStorage();
 
 builder.Services.ConfigureFeatures(builder.Configuration, appAssembly);
 
@@ -31,8 +34,10 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCustomFastEndpoints();
-app.UseSwaggerGen();
+app.UseKeycloakSwaggerGen();
 app.UseEventualConsistencyMiddleware();
 
 app.MapDefaultEndpoints();

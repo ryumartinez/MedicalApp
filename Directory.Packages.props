@@ -12,6 +12,9 @@
     <PackageVersion Include="MessagePack" Version="2.5.301" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppService" Version="13.4.3" />
     <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="13.4.3" />
+    <PackageVersion Include="Aspire.Keycloak.Authentication" Version="13.4.3-preview.1.26305.13" />
+    <!-- Garage S3 client. Validated against dxflrs/garage:v2.4.1 (see tools/AppHost/Garage/README.md). -->
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.3" />
     <PackageVersion Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="10.0.1" />
     <PackageVersion Include="FastEndpoints.Swagger" Version="7.1.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
@@ -43,6 +46,7 @@
   </ItemGroup>
   <ItemGroup Condition="$(IsAspireHost) == 'true'">
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.4.3" />
+    <PackageVersion Include="Aspire.Hosting.Keycloak" Version="13.4.3-preview.1.26305.13" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.3" />
   </ItemGroup>
   <ItemGroup Condition="$(IsTestProject) == 'true'">

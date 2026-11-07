@@ -31,6 +31,8 @@ public class Worker(
             if (environment.IsDevelopment())
             {
                 await warehouseInitializer.SeedDataAsync(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<ProgressIdentityInitializer>().SeedAsync(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<ProgressWorkflowInitializer>().SeedAsync(stoppingToken);
             }
 
             sw.Stop();

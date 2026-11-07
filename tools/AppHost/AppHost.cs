@@ -1,4 +1,6 @@
 using AppHost.Commands;
+using AppHost.Garage;
+using AppHost.Keycloak;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Projects;
@@ -25,7 +27,7 @@ var postgres = builder
     {
         container.WithLifetime(ContainerLifetime.Persistent);
         container.WithImageTag("17");
-        container.WithDataVolume();
+        container.WithDataVolume(builder.Configuration["Postgres:DataVolume"]);
     });
 
 var db = postgres
@@ -56,6 +58,73 @@ var api = builder
     .WithExternalHttpEndpoints()
     .WithReference(db)
     .WaitForCompletion(migrationService);
+
+if (!builder.ExecutionContext.IsPublishMode)
+{
+    var keycloak = builder.AddKeycloak("keycloak", 8080)
+        .WithImageTag(KeycloakImage.Tag)
+        .WithDataVolume(builder.Configuration["Keycloak:DataVolume"])
+        .WithRealmImport("./Keycloak/Realms")
+        .WithEnabledFeatures("persistent-user-sessions")
+        .WithOtlpExporter();
+
+    // The API uses this secret for the provisioning service account. The initializer applies it to the client.
+    var provisioningSecret = builder.AddParameter("keycloak-provisioning-secret",
+        new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true, persist: true);
+
+    var keycloakInitializer = builder.AddProject<KeycloakInitializer>("keycloak-init")
+        .WithEnvironment("KEYCLOAK_ENDPOINT", keycloak.GetEndpoint("http"))
+        .WithEnvironment(context =>
+        {
+            context.EnvironmentVariables["KEYCLOAK_ADMIN_PASSWORD"] = keycloak.Resource.AdminPasswordParameter;
+        })
+        .WithEnvironment("KEYCLOAK_PROVISIONING_SECRET", provisioningSecret)
+        .WaitFor(keycloak);
+
+    // Development seed mappings use the issuer that browser tokens carry.
+    migrationService.WithEnvironment("Authentication__Keycloak__DevelopmentIssuer",
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/medicalapp"));
+
+    api.WithReference(keycloak)
+        .WithEnvironment("Authentication__Keycloak__Provisioning__ClientSecret", provisioningSecret)
+        .WaitForCompletion(keycloakInitializer);
+
+    // Garage secrets. Digits only, so each value is valid hexadecimal for the RPC secret and key formats.
+    static GenerateParameterDefault Digits(int length) =>
+        new() { MinLength = length, Lower = false, Upper = false, Special = false };
+    var garageRpcSecret = builder.AddParameter("garage-rpc-secret", Digits(64), secret: true, persist: true);
+    var garageAdminToken = builder.AddParameter("garage-admin-token",
+        new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true, persist: true);
+    var garageKeyId = builder.AddParameter("garage-access-key-id", Digits(24), secret: true, persist: true);
+    var garageSecretKey = builder.AddParameter("garage-secret-access-key", Digits(64), secret: true, persist: true);
+    const string mediaBucket = "medicalapp-media";
+    var corsOrigins = builder.Configuration["Garage:CorsOrigins"] ?? "https://localhost:7255";
+
+    var garage = builder.AddGarage("garage", garageRpcSecret, garageAdminToken,
+        metadataVolume: builder.Configuration["Garage:MetadataVolume"],
+        dataVolume: builder.Configuration["Garage:DataVolume"]);
+    var accessKeyId = ReferenceExpression.Create($"GK{garageKeyId}");
+
+    var garageInitializer = builder.AddProject<GarageInitializer>("garage-init")
+        .WithEnvironment("GARAGE_ADMIN_ENDPOINT", garage.Resource.AdminEndpoint)
+        .WithEnvironment("GARAGE_S3_ENDPOINT", garage.Resource.S3Endpoint)
+        .WithEnvironment("GARAGE_ADMIN_TOKEN", garageAdminToken)
+        .WithEnvironment("GARAGE_BUCKET", mediaBucket)
+        .WithEnvironment("GARAGE_API_ACCESS_KEY_ID", accessKeyId)
+        .WithEnvironment("GARAGE_API_SECRET_ACCESS_KEY", garageSecretKey)
+        .WithEnvironment("GARAGE_CORS_ORIGINS", corsOrigins)
+        // Garage reports healthy only after the initializer applies the layout.
+        .WaitForStart(garage);
+
+    // The API runs on the host, so the published S3 endpoint is reachable by both the API and the browser.
+    api.WithEnvironment("Storage__Garage__ServiceUrl", garage.Resource.S3Endpoint)
+        .WithEnvironment("Storage__Garage__PublicServiceUrl", garage.Resource.S3Endpoint)
+        .WithEnvironment("Storage__Garage__Bucket", mediaBucket)
+        .WithEnvironment("Storage__Garage__AccessKeyId", accessKeyId)
+        .WithEnvironment("Storage__Garage__SecretAccessKey", garageSecretKey)
+        .WaitForCompletion(garageInitializer)
+        .WaitFor(garage);
+}
 
 // Configure Application Insights and Log Analytics only if in publish mode
 // When running locally, use Aspire Dashboard instead
