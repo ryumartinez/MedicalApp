@@ -67,12 +67,8 @@ public sealed class KeycloakContainer : IAsyncDisposable
         await _container.StartAsync();
         _admin = new HttpClient(new AdminTokenHandler(this) { InnerHandler = CreateHandler() }) { BaseAddress = new Uri(Address) };
 
-        // Run the same reconciliation as local orchestration, including the provisioning client.
-        var realm = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "medicalapp-realm.json")))!.AsObject();
-        await KeycloakInitializer.KeycloakRealmReconciler.ReconcileAsync(_admin, realm, ProvisioningSecret);
-
-        foreach (var userId in new[] { DoctorUserId, PatientUserId, AdministratorUserId })
-            await SetPasswordAsync(userId);
+        // Run the same reconciliation as local orchestration. It also gives the development accounts the shared password.
+        await ReconcileAsync(_password);
 
         // Give the ID token the API audience so rejection also exercises the access-token type check.
         var clients = await _admin.GetFromJsonAsync<JsonArray>("/admin/realms/medicalapp/clients?clientId=medicalapp-swagger")
@@ -85,6 +81,20 @@ public sealed class KeycloakContainer : IAsyncDisposable
         using var updateMapper = await _admin.PutAsJsonAsync($"{mapperPath}/{mapper["id"]!.GetValue<string>()}", mapper);
         updateMapper.EnsureSuccessStatusCode();
     }
+
+    /// <summary>
+    /// Runs the local orchestration reconciler against this container with the given development account password.
+    /// </summary>
+    public async Task ReconcileAsync(string developmentPassword)
+    {
+        var realm = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "medicalapp-realm.json")))!.AsObject();
+        await KeycloakInitializer.KeycloakRealmReconciler.ReconcileAsync(_admin, realm, ProvisioningSecret, developmentPassword);
+    }
+
+    /// <summary>
+    /// The shared password of the development accounts and the test accounts.
+    /// </summary>
+    public string Password => _password;
 
     private async Task<string> GetAdminTokenAsync(CancellationToken cancellationToken)
     {
@@ -272,7 +282,7 @@ public sealed class KeycloakContainer : IAsyncDisposable
 
     public const string RedirectUri = "https://localhost:7255/swagger/oauth2-redirect.html";
 
-    public async Task<(string AccessToken, string IdToken)> GetTokensAsync(string username, string clientId = "medicalapp-swagger", string realm = "medicalapp")
+    public async Task<(string AccessToken, string IdToken)> GetTokensAsync(string username, string clientId = "medicalapp-swagger", string realm = "medicalapp", string? password = null)
     {
         using var handler = CreateHandler();
         handler.AllowAutoRedirect = false;
@@ -296,7 +306,7 @@ public sealed class KeycloakContainer : IAsyncDisposable
         if (string.IsNullOrEmpty(action))
             throw new InvalidOperationException("Keycloak did not return its login form.");
         using var login = await browser.PostAsync(WebUtility.HtmlDecode(action), new FormUrlEncodedContent(
-            new Dictionary<string, string> { ["username"] = username, ["password"] = _password, ["credentialId"] = "" }));
+            new Dictionary<string, string> { ["username"] = username, ["password"] = password ?? _password, ["credentialId"] = "" }));
         if (login.StatusCode != HttpStatusCode.Redirect || login.Headers.Location is not { } location || !location.AbsoluteUri.StartsWith(redirectUri, StringComparison.Ordinal))
         {
             var (stdout, stderr) = await _container.GetLogsAsync();

@@ -409,7 +409,10 @@ The persistence files define DbSets, relationships, unique indexes, and the data
 It uses stable development account subjects that match the Keycloak configuration.
 `MigrationService/Program.cs` registers the initializer. `Worker.cs` runs it only in development after schema creation.
 The Keycloak administrator comes from Aspire bootstrap parameters.
-Development account credentials use local secrets and the selected provisioning process.
+The development doctor, patient, and administrator accounts share a password from the `keycloak-dev-password` Aspire secret parameter.
+Aspire generates and persists it in AppHost user secrets, and a developer can replace it there.
+The Keycloak initializer sets it only on development accounts without a password, so passwords that developers changed are kept.
+Committed files contain no development account passwords. Accounts provisioned through the API keep the temporary-password process.
 
 The integration fixtures provide a real Keycloak instance, tokens, authentication configuration, and authenticated HTTP clients.
 Domain tests remain in the unit test project.

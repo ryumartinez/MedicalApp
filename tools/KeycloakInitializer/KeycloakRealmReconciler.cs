@@ -19,10 +19,13 @@ public static class KeycloakRealmReconciler
     /// <param name="client">A client authenticated as the Keycloak administrator.</param>
     /// <param name="realm">The desired realm definition.</param>
     /// <param name="provisioningSecret">The secret the API uses for the provisioning client.</param>
-    public static async Task ReconcileAsync(HttpClient client, JsonObject realm, string provisioningSecret)
+    /// <param name="developmentPassword">The password given to realm-file development accounts that have none.</param>
+    public static async Task ReconcileAsync(HttpClient client, JsonObject realm, string provisioningSecret, string developmentPassword)
     {
         if (string.IsNullOrWhiteSpace(provisioningSecret) || provisioningSecret.Length < 32)
             throw new InvalidOperationException("The provisioning client secret must contain at least 32 characters.");
+        if (string.IsNullOrWhiteSpace(developmentPassword) || developmentPassword.Length < 8)
+            throw new InvalidOperationException("The development account password must contain at least 8 characters.");
 
         const string realmPath = "/admin/realms/medicalapp";
         using var realmResponse = await client.GetAsync(realmPath);
@@ -188,8 +191,38 @@ public static class KeycloakRealmReconciler
             createdUser.EnsureSuccessStatusCode();
         }
 
+        foreach (var userItem in realm["users"]!.AsArray())
+            await EnsureDevelopmentPasswordAsync(client, realmPath, userItem!["id"]!.GetValue<string>(), developmentPassword);
+
         await EnsureProvisioningAttributeAsync(client, realmPath);
         await EnsureProvisioningClientAsync(client, realmPath, clientIds[ProvisioningClientId], provisioningSecret);
+    }
+
+    // Sets the password only when the account has none, so passwords that developers changed are kept.
+    private static async Task EnsureDevelopmentPasswordAsync(HttpClient client, string realmPath, string userId, string password)
+    {
+        var userPath = $"{realmPath}/users/{Uri.EscapeDataString(userId)}";
+        var credentials = await client.GetFromJsonAsync<JsonArray>($"{userPath}/credentials")
+            ?? throw new InvalidOperationException("Keycloak returned an invalid credential list.");
+        if (credentials.Any(node => node?["type"]?.GetValue<string>() == "password"))
+            return;
+
+        using var reset = await client.PutAsJsonAsync($"{userPath}/reset-password",
+            new JsonObject { ["type"] = "password", ["value"] = password, ["temporary"] = false });
+        reset.EnsureSuccessStatusCode();
+
+        // Keep any other required actions a developer added.
+        var user = await client.GetFromJsonAsync<JsonObject>(userPath)
+            ?? throw new InvalidOperationException("Keycloak returned an invalid user.");
+        if (user["requiredActions"] is not JsonArray actions)
+            return;
+        var remaining = new JsonArray(actions.Where(node => node?.GetValue<string>() != "UPDATE_PASSWORD")
+            .Select(node => node?.DeepClone()).ToArray());
+        if (remaining.Count == actions.Count)
+            return;
+        user["requiredActions"] = remaining;
+        using var update = await client.PutAsJsonAsync(userPath, user);
+        update.EnsureSuccessStatusCode();
     }
 
     private static async Task EnsureProvisioningAttributeAsync(HttpClient client, string realmPath)

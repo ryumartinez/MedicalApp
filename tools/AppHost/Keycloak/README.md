@@ -12,7 +12,8 @@ On each start, `keycloak-init` reconciles the realm settings, application client
 It also reconciles the provisioning client, its service account roles, and the provisioning marker attribute.
 It preserves unrelated clients, mappers, accounts, and existing account role assignments.
 It imports missing development accounts with their specified subjects and roles.
-It does not assign passwords to these accounts.
+It gives each development account the `keycloak-dev-password` password when the account has no password.
+It never replaces a password that an account already has.
 
 If a development username already belongs to another subject, initialization fails without changing the account.
 Resolve that conflict in the Keycloak administrator console before the next start.
@@ -51,14 +52,35 @@ Aspire stores the generated bootstrap password as `Parameters:keycloak-password`
 Aspire stores the generated provisioning client secret as `Parameters:keycloak-provisioning-secret`.
 The initializer applies that secret to the `medicalapp-provisioning` client on each start.
 The API receives it as `Authentication:Keycloak:Provisioning:ClientSecret`.
-Keep both values private, and never commit passwords or client secrets in the realm file.
+Aspire stores the generated development account password as `Parameters:keycloak-dev-password`.
+Keep these values private, and never commit passwords or client secrets in the realm file.
 
 Keycloak stores the administrator credential in its data volume after the first start.
 Changing the bootstrap parameter does not change that stored credential.
 If the stored credential changes, update the AppHost secret to match before the next start.
 
-The development doctor, patient, and administrator accounts require passwords before interactive login.
-Set those passwords in the Keycloak administrator console under **Users** > account > **Credentials**.
+### Development accounts
+
+The `development-doctor`, `development-patient`, and `development-administrator` accounts share one password.
+Aspire generates it on the first start: 16 letters and digits, kept in the AppHost secret store.
+To read it, run:
+
+```bash
+dotnet user-secrets list --project tools/AppHost
+```
+
+Use the `Parameters:keycloak-dev-password` value to sign in through Swagger at `https://localhost:7255/swagger`.
+The accounts do not ask for a new password at first sign-in.
+
+To choose your own password, at least 8 characters, run this before the accounts have passwords:
+
+```bash
+dotnet user-secrets set "Parameters:keycloak-dev-password" "<your-password>" --project tools/AppHost
+```
+
+A changed secret does not update accounts that already have a password, including passwords you changed in Keycloak.
+To apply the current secret to an account, open the Keycloak administrator console under **Users** > account > **Credentials**, delete its password, and restart the AppHost.
+You can also reset the password directly on that page.
 In development, the migration service links the doctor and patient accounts to seeded records with an active treatment relationship.
 The administrator account needs no application mapping.
 
@@ -124,4 +146,4 @@ To confirm that publication contains no local identity resources, run:
 dotnet run --project tools/AppHost -- --operation publish --publisher manifest --output-path ./publish/aspire-manifest.json
 ```
 
-The output must not mention `keycloak`, the realm file, or the provisioning secret.
+The output must not mention `keycloak`, the realm file, the provisioning secret, or the development account password.

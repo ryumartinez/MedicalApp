@@ -72,6 +72,10 @@ if (!builder.ExecutionContext.IsPublishMode)
     var provisioningSecret = builder.AddParameter("keycloak-provisioning-secret",
         new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true, persist: true);
 
+    // Shared password for the realm-file development accounts. The initializer sets it only on accounts without a password.
+    var developmentPassword = builder.AddParameter("keycloak-dev-password",
+        new GenerateParameterDefault { MinLength = 16, Special = false }, secret: true, persist: true);
+
     var keycloakInitializer = builder.AddProject<KeycloakInitializer>("keycloak-init")
         .WithEnvironment("KEYCLOAK_ENDPOINT", keycloak.GetEndpoint("http"))
         .WithEnvironment(context =>
@@ -79,6 +83,7 @@ if (!builder.ExecutionContext.IsPublishMode)
             context.EnvironmentVariables["KEYCLOAK_ADMIN_PASSWORD"] = keycloak.Resource.AdminPasswordParameter;
         })
         .WithEnvironment("KEYCLOAK_PROVISIONING_SECRET", provisioningSecret)
+        .WithEnvironment("KEYCLOAK_DEV_PASSWORD", developmentPassword)
         .WaitFor(keycloak);
 
     // Development seed mappings use the issuer that browser tokens carry.
