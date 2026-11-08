@@ -35,7 +35,7 @@ public class GetAccountEndpoint(ApplicationDbContext dbContext, IIdentityProvide
             identity.PatientId?.Value,
             account is null
                 ? null
-                : new GetAccountResponse.ProviderAccountDto(account.Username, account.Enabled, account.ApiRoles.Order().ToList()),
+                : new GetAccountResponse.ProviderAccountDto(account.Username, account.Enabled, account.HasPassword, account.ApiRoles.Order().ToList()),
             AccountProvisioningState.PendingSteps(identity, account)), ct);
     }
 }

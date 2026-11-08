@@ -32,7 +32,8 @@ public class TestDatabase : IAsyncDisposable
             {
                 DbAdapter = DbAdapter.Postgres,
                 SchemasToInclude = ["public"],
-                TablesToIgnore = ["__EFMigrationsHistory"]
+                // Client registrations, scopes, roles, and data protection keys are set up once per run.
+                TablesToIgnore = ["__EFMigrationsHistory", "OpenIddictApplications", "OpenIddictScopes", "AspNetRoles", "DataProtectionKeys"]
             });
     }
 

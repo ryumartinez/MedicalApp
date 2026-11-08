@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using MedicalApp.Common.Domain.ApplicationIdentities;
 using MedicalApp.Common.Domain.DoctorPatientRelationships;
 using MedicalApp.Common.Domain.Doctors;
@@ -6,24 +5,20 @@ using MedicalApp.Common.Domain.Patients;
 using MedicalApp.Common.Domain.ProgressEntries;
 using MedicalApp.Common.Domain.ProgressForms;
 using MedicalApp.Common.Domain.ProgressPlans;
-using MedicalApp.Common.Interfaces;
+using MedicalApp.Common.Identity;
 using MedicalApp.Common.Persistence;
-using MedicalApp.Common.Persistence.Interceptors;
 using MedicalApp.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Hosting.Internal;
-using MigrationService;
 using MigrationService.Initializers;
-using NSubstitute;
 
 namespace MedicalApp.IntegrationTests.Persistence.Seeding;
 
 public sealed class ProgressIdentitySeedTests(TestingDatabaseFixture fixture) : IntegrationTestBase(fixture)
 {
-    private const string Issuer = "http://localhost:8080/realms/medicalapp";
+    private const string Issuer = MigrationServices.DevelopmentIssuer;
+    private const string KeycloakIssuer = "http://localhost:8080/realms/medicalapp";
 
     [Fact]
     public async Task SeedsMatchingDevelopmentMappingsOnce()
@@ -39,11 +34,46 @@ public sealed class ProgressIdentitySeedTests(TestingDatabaseFixture fixture) : 
         (await GetQueryable<Patient>().CountAsync(x => x.Id == ProgressIdentityInitializer.PatientId, CancellationToken)).Should().Be(1);
         (await GetQueryable<DoctorPatientRelationship>().SingleAsync(CancellationToken)).IsActive.Should().BeTrue();
 
-        // Subjects must match the development accounts that Keycloak imports.
-        var realm = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "medicalapp-realm.json"), CancellationToken))!;
-        var users = realm["users"]!.AsArray().ToDictionary(x => x!["username"]!.GetValue<string>(), x => x!["id"]!.GetValue<string>());
+        // Subjects must match the seeded development accounts.
+        var users = await GetQueryable<ApplicationUser>().ToDictionaryAsync(x => x.UserName!, x => x.Subject, CancellationToken);
         identities[0].Subject.Should().Be(users["development-doctor"]);
         identities[1].Subject.Should().Be(users["development-patient"]);
+    }
+
+    [Fact]
+    public async Task MovesSeededMappingsFromTheKeycloakIssuer()
+    {
+        await SeedWithKeycloakIssuerAsync();
+
+        await RunWorkerAsync(Environments.Development);
+
+        var identities = await GetQueryable<ApplicationIdentity>().OrderBy(x => x.Subject).ToListAsync(CancellationToken);
+        identities.Should().HaveCount(2).And.OnlyContain(x => x.Enabled && x.Issuer == Issuer);
+        identities[0].DoctorId.Should().Be(ProgressIdentityInitializer.DoctorId);
+        identities[1].PatientId.Should().Be(ProgressIdentityInitializer.PatientId);
+    }
+
+    [Fact]
+    public async Task MovesADisabledSeededMappingAndKeepsItDisabled()
+    {
+        await SeedWithKeycloakIssuerAsync();
+        using (var scope = CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var identity = await db.ApplicationIdentities.SingleAsync(x => x.Id == ProgressIdentityInitializer.PatientIdentityId, CancellationToken);
+            identity.Disable();
+            await db.SaveChangesAsync(CancellationToken);
+        }
+
+        await RunWorkerAsync(Environments.Development);
+        var moved = await GetQueryable<ApplicationIdentity>().SingleAsync(x => x.Id == ProgressIdentityInitializer.PatientIdentityId, CancellationToken);
+        await RunWorkerAsync(Environments.Development);
+        var repeated = await GetQueryable<ApplicationIdentity>().SingleAsync(x => x.Id == ProgressIdentityInitializer.PatientIdentityId, CancellationToken);
+
+        moved.Issuer.Should().Be(Issuer);
+        moved.Enabled.Should().BeFalse();
+        moved.PatientId.Should().Be(ProgressIdentityInitializer.PatientId);
+        repeated.Should().BeEquivalentTo(moved);
     }
 
     [Fact]
@@ -96,30 +126,24 @@ public sealed class ProgressIdentitySeedTests(TestingDatabaseFixture fixture) : 
         (await GetQueryable<ProgressPlan>().CountAsync(CancellationToken)).Should().Be(0);
     }
 
-    private async Task RunWorkerAsync(string environment)
+    /// <summary>
+    /// Leaves the seeded mappings as the Keycloak-era seed stored them: the realm URL without a trailing slash.
+    /// </summary>
+    private async Task SeedWithKeycloakIssuerAsync()
+    {
+        await RunWorkerAsync(Environments.Development);
+        using var scope = CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.ApplicationIdentities.ExecuteUpdateAsync(update => update.SetProperty(x => x.Issuer, KeycloakIssuer), CancellationToken);
+        (await GetQueryable<ApplicationIdentity>().ToListAsync(CancellationToken)).Should().HaveCount(2).And.OnlyContain(x => x.Issuer == KeycloakIssuer);
+    }
+
+    private Task RunWorkerAsync(string environment, IDictionary<string, string?>? settings = null)
     {
         string connectionString;
         using (var scope = CreateScope())
             connectionString = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.GetConnectionString()!;
 
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { [ProgressIdentityInitializer.IssuerKey] = Issuer })
-            .Build());
-        services.AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = environment });
-        services.AddSingleton<ICurrentUserService, MigrationUserService>();
-        services.AddSingleton(TimeProvider.System);
-        services.AddDbContext<ApplicationDbContext>((provider, options) => options
-            .UseNpgsql(connectionString)
-            .AddInterceptors(new EntitySaveChangesInterceptor(provider.GetRequiredService<ICurrentUserService>(), TimeProvider.System)));
-        services.AddScoped<ApplicationDbContextInitializer>();
-        services.AddScoped<ProgressIdentityInitializer>();
-        services.AddScoped<ProgressWorkflowInitializer>();
-        await using var provider = services.BuildServiceProvider();
-
-        var worker = new Worker(provider, Substitute.For<IHostApplicationLifetime>(), provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Worker>>());
-        await worker.StartAsync(CancellationToken);
-        await worker.ExecuteTask!;
+        return MigrationServices.RunWorkerAsync(connectionString, environment, settings, CancellationToken);
     }
 }

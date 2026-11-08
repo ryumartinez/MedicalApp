@@ -19,8 +19,11 @@
         <PackageReference Include="Vogen"/>
         <PackageReference Include="Ardalis.Specification.EntityFrameworkCore"/>
         <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL"/>
-        <PackageReference Include="Aspire.Keycloak.Authentication"/>
         <PackageReference Include="AWSSDK.S3"/>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore"/>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
+        <PackageReference Include="OpenIddict.AspNetCore"/>
+        <PackageReference Include="OpenIddict.EntityFrameworkCore"/>
         <PackageReference Include="FastEndpoints"/>
     </ItemGroup>
 

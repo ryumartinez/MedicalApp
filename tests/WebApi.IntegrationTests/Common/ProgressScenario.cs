@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace MedicalApp.IntegrationTests.Common;
 
 /// <summary>
-/// Two doctors and two patients with real Keycloak accounts and enabled mappings.
+/// Two doctors and two patients with real sign-in accounts and enabled mappings.
 /// Doctor A treats patient A. Other relationships are added by each test.
 /// </summary>
 public sealed class ProgressScenario : IDisposable
@@ -39,9 +39,9 @@ public sealed class ProgressScenario : IDisposable
 
     private async Task InitializeAsync()
     {
-        var keycloak = _fixture.Keycloak;
-        var doctorBSubject = await keycloak.EnsureUserAsync("test-doctor-b", "doctor");
-        var patientBSubject = await keycloak.EnsureUserAsync("test-patient-b", "patient");
+        var identity = _fixture.Identity;
+        var doctorBSubject = await identity.EnsureUserAsync("test-doctor-b", "doctor");
+        var patientBSubject = await identity.EnsureUserAsync("test-patient-b", "patient");
 
         DoctorA = Doctor.Create("Dr. Ana", "Psychology");
         DoctorB = Doctor.Create("Dr. Bruno", "Physiotherapy");
@@ -53,9 +53,9 @@ public sealed class ProgressScenario : IDisposable
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             db.AddRange(DoctorA, DoctorB, PatientA, PatientB);
             db.ApplicationIdentities.AddRange(
-                Mapping(KeycloakContainer.DoctorUserId, identity => identity.LinkDoctor(DoctorA.Id)),
+                Mapping(TestIdentity.DoctorUserId, identity => identity.LinkDoctor(DoctorA.Id)),
                 Mapping(doctorBSubject, identity => identity.LinkDoctor(DoctorB.Id)),
-                Mapping(KeycloakContainer.PatientUserId, identity => identity.LinkPatient(PatientA.Id)),
+                Mapping(TestIdentity.PatientUserId, identity => identity.LinkPatient(PatientA.Id)),
                 Mapping(patientBSubject, identity => identity.LinkPatient(PatientB.Id)));
             db.DoctorPatientRelationships.Add(DoctorPatientRelationship.Create(DoctorA.Id, PatientA.Id));
             await db.SaveChangesAsync();
@@ -80,7 +80,7 @@ public sealed class ProgressScenario : IDisposable
 
     private ApplicationIdentity Mapping(string subject, Action<ApplicationIdentity> link)
     {
-        var identity = ApplicationIdentity.Create(_fixture.Keycloak.Issuer, subject);
+        var identity = ApplicationIdentity.Create(TestIdentity.Issuer, subject);
         link(identity);
         identity.Enable();
         return identity;

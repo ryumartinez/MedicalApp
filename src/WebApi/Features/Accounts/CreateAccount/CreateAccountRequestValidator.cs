@@ -8,7 +8,7 @@ public class CreateAccountRequestValidator : Validator<CreateAccountRequest>
 
     public CreateAccountRequestValidator()
     {
-        // Keycloak stores usernames in lower case, so only lower-case names make retries match exactly.
+        // Lower-case names keep usernames unambiguous for people and make retries match exactly.
         RuleFor(v => v.Username)
             .NotEmpty()
             .Length(UsernameMinLength, UsernameMaxLength)

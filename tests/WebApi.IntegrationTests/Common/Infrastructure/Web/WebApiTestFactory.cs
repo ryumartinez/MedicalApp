@@ -10,6 +10,8 @@ using MedicalApp.Common.Storage;
 using MedicalApp.Common.Storage.Garage;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Data.Common;
+using Microsoft.IdentityModel.Tokens;
+using OpenIddict.Server;
 
 namespace MedicalApp.IntegrationTests.Common.Infrastructure.Web;
 
@@ -19,15 +21,12 @@ namespace MedicalApp.IntegrationTests.Common.Infrastructure.Web;
 public class WebApiTestFactory : WebApplicationFactory<IWebApiMarker>
 {
     private readonly DbConnection _dbConnection;
-    private readonly KeycloakContainer? _keycloak;
     private readonly GarageContainer? _garage;
     private readonly TimeProvider? _timeProvider;
 
-    public WebApiTestFactory(DbConnection dbConnection, KeycloakContainer? keycloak = null, GarageContainer? garage = null,
-        TimeProvider? timeProvider = null)
+    public WebApiTestFactory(DbConnection dbConnection, GarageContainer? garage = null, TimeProvider? timeProvider = null)
     {
         _dbConnection = dbConnection;
-        _keycloak = keycloak;
         _garage = garage;
         _timeProvider = timeProvider;
     }
@@ -35,6 +34,14 @@ public class WebApiTestFactory : WebApplicationFactory<IWebApiMarker>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:AppDb", _dbConnection.ConnectionString);
+
+        // The API is its own authorization server. Tests use throwaway keys and the test server's HTTPS address as issuer.
+        builder.UseSetting(IdentityIssuer.ConfigurationKey, TestIdentity.Issuer);
+        builder.UseSetting(ServerCredentials.EphemeralKeysKey, "true");
+
+        // A retired signing key stays configured after the new one, as during a certificate rotation.
+        builder.ConfigureTestServices(services => services.Configure<OpenIddictServerOptions>(options =>
+            options.SigningCredentials.Add(new SigningCredentials(TestIdentity.RetiredSigningKey, SecurityAlgorithms.RsaSha256))));
 
         // Tests run cleanup explicitly.
         builder.UseSetting($"{MediaCleanupOptions.SectionName}:Enabled", "false");
@@ -47,17 +54,5 @@ public class WebApiTestFactory : WebApplicationFactory<IWebApiMarker>
             builder.UseSetting($"{GarageStorageOptions.SectionName}:AccessKeyId", _garage.AccessKeyId);
             builder.UseSetting($"{GarageStorageOptions.SectionName}:SecretAccessKey", _garage.SecretAccessKey);
         }
-
-        if (_keycloak is null)
-            return;
-
-        // The API discovers Keycloak the same way Aspire configures it, and trusts only the test certificate.
-        builder.UseSetting("services:keycloak:https:0", _keycloak.Address);
-        builder.UseSetting($"{KeycloakProvisioningOptions.SectionName}:ClientSecret", _keycloak.ProvisioningSecret);
-        builder.ConfigureTestServices(services =>
-        {
-            services.AddHttpClient("KeycloakBackchannel").ConfigurePrimaryHttpMessageHandler(_keycloak.CreateHandler);
-            services.AddHttpClient(KeycloakAccountAdministration.HttpClientName).ConfigurePrimaryHttpMessageHandler(_keycloak.CreateHandler);
-        });
     }
 }

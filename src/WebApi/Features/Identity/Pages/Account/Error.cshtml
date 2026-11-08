@@ -1,0 +1,7 @@
+@page
+@model MedicalApp.Features.Identity.Pages.Account.ErrorModel
+@{
+    ViewData["Title"] = "Sign-in error";
+}
+<h1>Sign-in could not continue</h1>
+<p>@(Model.Description ?? "The request was not allowed. Start again from the app you were using.")</p>

@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <Content Include="..\AppHost\Keycloak\Realms\medicalapp-realm.json" Link="medicalapp-realm.json" CopyToOutputDirectory="PreserveNewest"/>
-    </ItemGroup>
-</Project>

@@ -1,15 +1,28 @@
 ﻿using MedicalApp.Common.Domain.Base.Interfaces;
+using MedicalApp.Common.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System.Reflection;
 
 namespace MedicalApp.Common.Persistence;
 
-public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+/// <summary>
+/// Holds the domain model, Identity accounts, OpenIddict registrations and tokens, and data protection keys,
+/// so account provisioning can change accounts and mappings in one transaction.
+/// </summary>
+public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IDataProtectionKeyContext
 {
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
-        base.OnModelCreating(modelBuilder);
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        // Identity's model first, so application configurations can refine it.
+        base.OnModelCreating(builder);
+
+        builder.UseOpenIddict<Guid>();
+        builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
