@@ -110,9 +110,6 @@
       "email": "doctor@example.invalid",
       "emailVerified": true,
       "enabled": true,
-      "requiredActions": [
-        "UPDATE_PASSWORD"
-      ],
       "clientRoles": {
         "medicalapp-api": [
           "doctor"
@@ -127,9 +124,6 @@
       "email": "patient@example.invalid",
       "emailVerified": true,
       "enabled": true,
-      "requiredActions": [
-        "UPDATE_PASSWORD"
-      ],
       "clientRoles": {
         "medicalapp-api": [
           "patient"
@@ -144,9 +138,6 @@
       "email": "administrator@example.invalid",
       "emailVerified": true,
       "enabled": true,
-      "requiredActions": [
-        "UPDATE_PASSWORD"
-      ],
       "clientRoles": {
         "medicalapp-api": [
           "administrator"

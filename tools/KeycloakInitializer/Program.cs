@@ -10,6 +10,10 @@ if (!endpoint.IsLoopback || (endpoint.Scheme != Uri.UriSchemeHttp && endpoint.Sc
 
 var password = Environment.GetEnvironmentVariable("KEYCLOAK_ADMIN_PASSWORD")
     ?? throw new InvalidOperationException("Keycloak administrator password is required.");
+var provisioningSecret = Environment.GetEnvironmentVariable("KEYCLOAK_PROVISIONING_SECRET")
+    ?? throw new InvalidOperationException("Keycloak provisioning client secret is required.");
+var developmentPassword = Environment.GetEnvironmentVariable("KEYCLOAK_DEV_PASSWORD")
+    ?? throw new InvalidOperationException("The development account password (KEYCLOAK_DEV_PASSWORD) is required.");
 var realmFile = Path.Combine(AppContext.BaseDirectory, "medicalapp-realm.json");
 var realm = JsonNode.Parse(await File.ReadAllTextAsync(realmFile))?.AsObject()
     ?? throw new InvalidOperationException("The local Keycloak realm definition is invalid.");
@@ -34,9 +38,7 @@ var token = await tokenResponse.Content.ReadFromJsonAsync<JsonObject>();
 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token?["access_token"]?.GetValue<string>()
     ?? throw new InvalidOperationException("Keycloak did not return an administrator access token."));
 
-var provisioningSecret = Environment.GetEnvironmentVariable("KEYCLOAK_PROVISIONING_SECRET")
-    ?? throw new InvalidOperationException("Keycloak provisioning client secret is required.");
-await KeycloakInitializer.KeycloakRealmReconciler.ReconcileAsync(client, realm, provisioningSecret);
+await KeycloakInitializer.KeycloakRealmReconciler.ReconcileAsync(client, realm, provisioningSecret, developmentPassword);
 
 Console.WriteLine("The medicalapp realm, clients, roles, and development accounts are ready.");
 
