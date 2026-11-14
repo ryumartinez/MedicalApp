@@ -12,7 +12,7 @@ public static class DependencyInjection
 
         services.AddScoped<EntitySaveChangesInterceptor>();
         services.AddScoped<DispatchDomainEventsInterceptor>();
-        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<TimeProvider>(DatabaseTimeProvider.Instance);
 
         builder.AddNpgsqlDbContext<ApplicationDbContext>("AppDb",
             null,

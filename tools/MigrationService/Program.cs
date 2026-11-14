@@ -30,7 +30,7 @@ builder.Services.AddScoped<ProgressWorkflowInitializer>();
 builder.Services.AddScoped<AdministratorBootstrap>();
 builder.Services.AddScoped<EntitySaveChangesInterceptor>();
 builder.Services.AddScoped<ICurrentUserService, MigrationUserService>();
-builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<TimeProvider>(DatabaseTimeProvider.Instance);
 
 builder.AddNpgsqlDbContext<ApplicationDbContext>("AppDb",
     null,
