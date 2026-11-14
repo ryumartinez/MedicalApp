@@ -44,10 +44,10 @@ public static class MigrationServices
         services.AddSingleton<IConfiguration>(configuration);
         services.AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = environment, ApplicationName = "MigrationService" });
         services.AddSingleton<ICurrentUserService, MigrationUserService>();
-        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<TimeProvider>(DatabaseTimeProvider.Instance);
         services.AddDbContext<ApplicationDbContext>((provider, options) => options
             .UseNpgsql(connectionString)
-            .AddInterceptors(new EntitySaveChangesInterceptor(provider.GetRequiredService<ICurrentUserService>(), TimeProvider.System)));
+            .AddInterceptors(new EntitySaveChangesInterceptor(provider.GetRequiredService<ICurrentUserService>(), DatabaseTimeProvider.Instance)));
         services.AddScoped<ApplicationDbContextInitializer>();
         services.AddScoped<IdentityClientInitializer>();
         services.AddScoped<DevelopmentAccountInitializer>();
