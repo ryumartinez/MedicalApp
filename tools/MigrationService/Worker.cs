@@ -27,10 +27,12 @@ public class Worker(
             var warehouseInitializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
             await warehouseInitializer.EnsureDatabaseAsync(stoppingToken);
             await warehouseInitializer.CreateSchemaAsync(true, stoppingToken);
+            await scope.ServiceProvider.GetRequiredService<IdentityClientInitializer>().InitializeAsync(stoppingToken);
 
             if (environment.IsDevelopment())
             {
                 await warehouseInitializer.SeedDataAsync(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<DevelopmentAccountInitializer>().SeedAsync(stoppingToken);
                 await scope.ServiceProvider.GetRequiredService<ProgressIdentityInitializer>().SeedAsync(stoppingToken);
                 await scope.ServiceProvider.GetRequiredService<ProgressWorkflowInitializer>().SeedAsync(stoppingToken);
             }

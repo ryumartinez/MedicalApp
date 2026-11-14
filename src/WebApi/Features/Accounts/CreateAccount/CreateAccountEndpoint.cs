@@ -32,46 +32,54 @@ public class CreateAccountEndpoint(ApplicationDbContext dbContext, IIdentityProv
 
     private async Task<ErrorOr<ApplicationIdentity>> CreateAsync(CreateAccountRequest req, CancellationToken ct)
     {
-        // Every account in the realm shares the administrator's validated issuer.
+        // Every account shares the administrator's validated issuer: this server.
         var issuer = User.FindFirstValue("iss")!;
 
-        // A retry finds the account from an earlier attempt instead of creating another one.
-        var account = await accounts.FindByUsernameAsync(req.Username, ct);
-        if (account is null)
-        {
-            var provisioningId = ApplicationIdentityId.From(Guid.CreateVersion7());
-            account = await accounts.CreateAsync(
-                new NewIdentityProviderAccount(req.Username, req.Email, req.FirstName, req.LastName),
-                provisioningId.Value.ToString(), ct);
-
-            // A conflict means a concurrent request created the username, or the email belongs to another account.
-            account ??= await accounts.FindByUsernameAsync(req.Username, ct);
-            if (account is null)
-                return ApplicationIdentityErrors.EmailInUse;
-        }
-
-        // Accounts without the marker were not created here. Linking them by username would bypass trusted provisioning.
-        if (!Guid.TryParse(account.ProvisioningId, out var markerId) || markerId == Guid.Empty)
-            return ApplicationIdentityErrors.AccountInUse;
-
-        var existing = await FindAsync(issuer, account.Subject, ct);
-        if (existing is not null)
-            return existing;
-
-        // The mapping starts disabled and grants no progress access until provisioning finishes.
-        var identity = ApplicationIdentity.Create(ApplicationIdentityId.From(markerId), issuer, account.Subject);
-        dbContext.ApplicationIdentities.Add(identity);
         try
         {
-            await dbContext.SaveChangesAsync(ct);
-            return identity;
+            return await dbContext.Database.CreateExecutionStrategy().ExecuteAsync(() => CreateInTransactionAsync(issuer, req, ct));
         }
         catch (UniqueConstraintException)
         {
-            // A concurrent retry stored the same mapping first.
+            // A concurrent retry stored the same account or mapping first.
             dbContext.ChangeTracker.Clear();
-            return await FindAsync(issuer, account.Subject, ct) ?? throw new InvalidOperationException("The concurrent mapping is missing.");
+            return await FindExistingAsync(issuer, req.Username, ct);
         }
+    }
+
+    /// <summary>
+    /// Creates the sign-in account and its disabled mapping together, or neither.
+    /// </summary>
+    private async Task<ErrorOr<ApplicationIdentity>> CreateInTransactionAsync(string issuer, CreateAccountRequest req, CancellationToken ct)
+    {
+        dbContext.ChangeTracker.Clear();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+
+        // A retry finds the account from an earlier attempt instead of creating another one.
+        if (await accounts.FindByUsernameAsync(req.Username, ct) is not null)
+            return await FindExistingAsync(issuer, req.Username, ct);
+
+        var account = await accounts.CreateAsync(new NewIdentityProviderAccount(req.Username, req.Email, req.FirstName, req.LastName), ct);
+        if (account is null)
+            return ApplicationIdentityErrors.EmailInUse;
+
+        // The mapping starts disabled and grants no progress access until provisioning finishes.
+        var identity = ApplicationIdentity.Create(issuer, account.Subject);
+        dbContext.ApplicationIdentities.Add(identity);
+        await dbContext.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return identity;
+    }
+
+    /// <summary>
+    /// Provisioning always creates an account and its mapping together. An account without a mapping was not
+    /// created here, and linking it by username would bypass trusted provisioning.
+    /// </summary>
+    private async Task<ErrorOr<ApplicationIdentity>> FindExistingAsync(string issuer, string username, CancellationToken ct)
+    {
+        var account = await accounts.FindByUsernameAsync(username, ct);
+        var existing = account is null ? null : await FindAsync(issuer, account.Subject, ct);
+        return existing is null ? ApplicationIdentityErrors.AccountInUse : existing;
     }
 
     private Task<ApplicationIdentity?> FindAsync(string issuer, string subject, CancellationToken ct) =>

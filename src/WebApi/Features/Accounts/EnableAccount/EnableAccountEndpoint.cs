@@ -39,7 +39,7 @@ public class EnableAccountEndpoint(ApplicationDbContext dbContext, IIdentityProv
             return;
         }
 
-        // Enable the Keycloak account first. The mapping is the last step because it grants progress access.
+        // Enable the sign-in account first. The mapping is the last step because it grants progress access.
         if (!account!.Enabled)
             await accounts.SetEnabledAsync(identity.Subject, true, ct);
 

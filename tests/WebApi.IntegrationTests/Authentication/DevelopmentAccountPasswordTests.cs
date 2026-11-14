@@ -1,145 +1,171 @@
-using System.Net.Http.Json;
-using System.Text.Json.Nodes;
-using KeycloakInitializer;
-using MedicalApp.IntegrationTests.Common.Infrastructure.Identity;
+using MedicalApp.Common.Authentication;
+using MedicalApp.Common.Identity;
+using MedicalApp.Common.Persistence;
+using MedicalApp.IntegrationTests.Common;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using MigrationService.Initializers;
 
 namespace MedicalApp.IntegrationTests.Authentication;
 
-/// <summary>
-/// Owns a Keycloak container so these tests can change development accounts without affecting the shared fixture.
-/// </summary>
-public sealed class DevelopmentAccountPasswordFixture : IAsyncLifetime
+public sealed class DevelopmentAccountPasswordTests(TestingDatabaseFixture fixture) : IntegrationTestBase(fixture)
 {
-    public KeycloakContainer Keycloak { get; } = new();
-
-    public ValueTask InitializeAsync() => new(Keycloak.InitializeAsync());
-
-    public ValueTask DisposeAsync() => Keycloak.DisposeAsync();
-}
-
-// Each test changes a different account and uses its own passwords, so test order does not matter.
-public sealed class DevelopmentAccountPasswordTests(DevelopmentAccountPasswordFixture fixture) : IClassFixture<DevelopmentAccountPasswordFixture>
-{
-    private const string UsersPath = "/admin/realms/medicalapp/users";
-
-    private KeycloakContainer Keycloak => fixture.Keycloak;
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("1234567")]
-    public async Task RejectsShortPasswordBeforeAnyKeycloakCall(string password)
-    {
-        using var client = new HttpClient(new NoRequestsHandler()) { BaseAddress = new Uri("http://localhost") };
-
-        var reconcile = () => KeycloakRealmReconciler.ReconcileAsync(client, new JsonObject(), new string('s', 48), password);
-
-        await reconcile.Should().ThrowAsync<InvalidOperationException>().WithMessage("*development account password*");
-    }
+    private const string ChangedPassword = "changed-by-developer-1";
+    private const string OtherSecret = "another-development-secret";
 
     [Fact]
-    public async Task GivesPasswordToAccountWithoutOneAndRemovesOnlyUpdatePassword()
+    public async Task CreatesAccountsWithRolesAndTheSharedPassword()
     {
-        const string userId = KeycloakContainer.DoctorUserId;
-        await DeletePasswordAsync(userId);
-        await SetRequiredActionsAsync(userId, "UPDATE_PASSWORD", "VERIFY_EMAIL");
-        const string password = "reconciled-doctor-1";
+        await SeedAsync(MigrationServices.DevelopmentPassword);
 
-        await Keycloak.ReconcileAsync(password);
-
-        (await HasPasswordAsync(userId)).Should().BeTrue();
-        (await GetRequiredActionsAsync(userId)).Should().Equal("VERIFY_EMAIL");
-        await SetRequiredActionsAsync(userId);
-        var (accessToken, _) = await Keycloak.GetTokensAsync("development-doctor", password: password);
-        accessToken.Should().NotBeNullOrEmpty();
+        await using var provider = Build(MigrationServices.DevelopmentPassword);
+        using var scope = provider.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        foreach (var account in DevelopmentAccountInitializer.Accounts)
+        {
+            var user = await users.FindByIdAsync(account.Id.ToString());
+            user!.UserName.Should().Be(account.Username);
+            user.Enabled.Should().BeTrue();
+            (await users.GetRolesAsync(user)).Should().Equal(account.Role);
+            (await users.CheckPasswordAsync(user, MigrationServices.DevelopmentPassword)).Should().BeTrue();
+        }
     }
 
     [Fact]
     public async Task KeepsPasswordThatDeveloperChanged()
     {
-        const string userId = KeycloakContainer.PatientUserId;
-        const string changed = "changed-by-developer-1";
-        using var reset = await Keycloak.Admin.PutAsJsonAsync($"{UsersPath}/{userId}/reset-password",
-            new { type = "password", value = changed, temporary = false });
-        reset.EnsureSuccessStatusCode();
-
-        await Keycloak.ReconcileAsync(Keycloak.Password);
-
-        var (accessToken, _) = await Keycloak.GetTokensAsync("development-patient", password: changed);
-        accessToken.Should().NotBeNullOrEmpty();
-        var withReconcilerPassword = () => Keycloak.GetTokensAsync("development-patient", password: Keycloak.Password);
-        await withReconcilerPassword.Should().ThrowAsync<InvalidOperationException>();
-    }
-
-    [Fact]
-    public async Task ChangedSecretLeavesExistingPasswordsUnchanged()
-    {
-        const string newSecret = "another-dev-secret-1";
-
-        await Keycloak.ReconcileAsync(newSecret);
-
-        var (accessToken, _) = await Keycloak.GetTokensAsync("development-administrator", password: Keycloak.Password);
-        accessToken.Should().NotBeNullOrEmpty();
-        var withNewSecret = () => Keycloak.GetTokensAsync("development-administrator", password: newSecret);
-        await withNewSecret.Should().ThrowAsync<InvalidOperationException>();
-    }
-
-    [Fact]
-    public async Task LeavesAccountsOutsideRealmFileUnchanged()
-    {
-        using var create = await Keycloak.Admin.PostAsJsonAsync(UsersPath, new JsonObject
+        await SeedAsync(MigrationServices.DevelopmentPassword);
+        await WithUserAsync(DevelopmentAccountInitializer.PatientUserId, async (users, user) =>
         {
-            ["username"] = "provisioned-without-password",
-            ["email"] = "provisioned-without-password@example.invalid",
-            ["firstName"] = "Provisioned",
-            ["lastName"] = "Account",
-            ["enabled"] = true,
-            ["emailVerified"] = true,
-            ["requiredActions"] = new JsonArray("UPDATE_PASSWORD")
+            var token = await users.GeneratePasswordResetTokenAsync(user);
+            (await users.ResetPasswordAsync(user, token, ChangedPassword)).Succeeded.Should().BeTrue();
         });
-        create.EnsureSuccessStatusCode();
-        var userId = create.Headers.Location!.Segments[^1];
 
-        await Keycloak.ReconcileAsync("reconciled-other-1");
+        await SeedAsync(MigrationServices.DevelopmentPassword);
 
-        (await HasPasswordAsync(userId)).Should().BeFalse();
-        (await GetRequiredActionsAsync(userId)).Should().Equal("UPDATE_PASSWORD");
-    }
-
-    private async Task<JsonArray> GetCredentialsAsync(string userId) =>
-        await Keycloak.Admin.GetFromJsonAsync<JsonArray>($"{UsersPath}/{userId}/credentials")
-        ?? throw new InvalidOperationException("Keycloak returned an invalid credential list.");
-
-    private async Task<bool> HasPasswordAsync(string userId) =>
-        (await GetCredentialsAsync(userId)).Any(x => x?["type"]?.GetValue<string>() == "password");
-
-    private async Task DeletePasswordAsync(string userId)
-    {
-        foreach (var credential in (await GetCredentialsAsync(userId)).Where(x => x?["type"]?.GetValue<string>() == "password"))
+        await WithUserAsync(DevelopmentAccountInitializer.PatientUserId, async (users, user) =>
         {
-            using var delete = await Keycloak.Admin.DeleteAsync($"{UsersPath}/{userId}/credentials/{credential!["id"]!.GetValue<string>()}");
-            delete.EnsureSuccessStatusCode();
+            (await users.CheckPasswordAsync(user, ChangedPassword)).Should().BeTrue();
+            (await users.CheckPasswordAsync(user, MigrationServices.DevelopmentPassword)).Should().BeFalse();
+        });
+    }
+
+    [Fact]
+    public async Task ChangedSecretDoesNotOverwriteExistingPasswords()
+    {
+        await SeedAsync(MigrationServices.DevelopmentPassword);
+
+        await SeedAsync(OtherSecret);
+
+        await WithUserAsync(DevelopmentAccountInitializer.DoctorUserId, async (users, user) =>
+        {
+            (await users.CheckPasswordAsync(user, MigrationServices.DevelopmentPassword)).Should().BeTrue();
+            (await users.CheckPasswordAsync(user, OtherSecret)).Should().BeFalse();
+        });
+    }
+
+    [Fact]
+    public async Task GivesPasswordToDevelopmentAccountWithoutOne()
+    {
+        await SeedAsync(password: null);
+        await WithUserAsync(DevelopmentAccountInitializer.AdministratorUserId, async (users, user) =>
+            (await users.HasPasswordAsync(user)).Should().BeFalse());
+
+        await SeedAsync(OtherSecret);
+
+        await WithUserAsync(DevelopmentAccountInitializer.AdministratorUserId, async (users, user) =>
+            (await users.CheckPasswordAsync(user, OtherSecret)).Should().BeTrue());
+    }
+
+    [Fact]
+    public async Task LeavesProvisionedAccountWithoutPassword()
+    {
+        var provisionedId = Guid.CreateVersion7();
+        await using (var provider = Build(MigrationServices.DevelopmentPassword))
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            (await users.CreateAsync(new ApplicationUser { Id = provisionedId, UserName = "provisioned-patient", Email = "provisioned@example.invalid" }))
+                .Succeeded.Should().BeTrue();
         }
+
+        await SeedAsync(MigrationServices.DevelopmentPassword);
+
+        await WithUserAsync(provisionedId, async (users, user) => (await users.HasPasswordAsync(user)).Should().BeFalse());
     }
 
-    private async Task<string[]> GetRequiredActionsAsync(string userId)
+    [Theory]
+    [InlineData("1234567")]
+    [InlineData("12345678901")]
+    public async Task RejectsShortPasswordBeforeAnyChange(string password)
     {
-        var user = await Keycloak.Admin.GetFromJsonAsync<JsonObject>($"{UsersPath}/{userId}")
-            ?? throw new InvalidOperationException("The account is missing.");
-        return user["requiredActions"]?.AsArray().Select(x => x!.GetValue<string>()).ToArray() ?? [];
+        var seed = () => SeedAsync(password);
+
+        await seed.Should().ThrowAsync<InvalidOperationException>().WithMessage("*development account password*");
+        (await GetQueryable<ApplicationUser>().CountAsync(CancellationToken)).Should().Be(0);
     }
 
-    private async Task SetRequiredActionsAsync(string userId, params string[] actions)
+    [Fact]
+    public async Task FailsWithoutChangesWhenUsernameBelongsToAnotherAccount()
     {
-        var user = await Keycloak.Admin.GetFromJsonAsync<JsonObject>($"{UsersPath}/{userId}")
-            ?? throw new InvalidOperationException("The account is missing.");
-        user["requiredActions"] = new JsonArray(actions.Select(x => (JsonNode)x).ToArray());
-        using var update = await Keycloak.Admin.PutAsJsonAsync($"{UsersPath}/{userId}", user);
-        update.EnsureSuccessStatusCode();
+        var otherId = Guid.CreateVersion7();
+        await using (var provider = Build(MigrationServices.DevelopmentPassword))
+        using (var scope = provider.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            (await users.CreateAsync(new ApplicationUser { Id = otherId, UserName = "development-doctor", Email = "squatter@example.invalid" }))
+                .Succeeded.Should().BeTrue();
+        }
+
+        var seed = () => SeedAsync(MigrationServices.DevelopmentPassword);
+
+        await seed.Should().ThrowAsync<InvalidOperationException>().WithMessage("*development-doctor*");
+        var squatter = await GetQueryable<ApplicationUser>().SingleAsync(x => x.Id == otherId, CancellationToken);
+        squatter.PasswordHash.Should().BeNull();
+        (await GetQueryable<ApplicationUser>().AnyAsync(x => x.Id == DevelopmentAccountInitializer.DoctorUserId, CancellationToken)).Should().BeFalse();
     }
 
-    private sealed class NoRequestsHandler : HttpMessageHandler
+    [Fact]
+    public async Task ProductionCreatesNoDevelopmentAccounts()
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The reconciler must not call Keycloak before validating its arguments.");
+        await MigrationServices.RunWorkerAsync(ConnectionString, Environments.Production, MigrationServices.DevelopmentSettings(), CancellationToken);
+
+        (await GetQueryable<ApplicationUser>().CountAsync(CancellationToken)).Should().Be(0);
+        (await GetQueryable<IdentityRole<Guid>>().CountAsync(CancellationToken)).Should().Be(ApiRoles.All.Count);
+    }
+
+    private async Task SeedAsync(string? password)
+    {
+        await using var provider = Build(password);
+        using var scope = provider.CreateScope();
+        // Roles come from the client initializer, which runs first in every environment.
+        await scope.ServiceProvider.GetRequiredService<IdentityClientInitializer>().InitializeAsync(CancellationToken);
+        await scope.ServiceProvider.GetRequiredService<DevelopmentAccountInitializer>().SeedAsync(CancellationToken);
+    }
+
+    private async Task WithUserAsync(Guid id, Func<UserManager<ApplicationUser>, ApplicationUser, Task> action)
+    {
+        await using var provider = Build(MigrationServices.DevelopmentPassword);
+        using var scope = provider.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        await action(users, (await users.FindByIdAsync(id.ToString()))!);
+    }
+
+    private ServiceProvider Build(string? password)
+    {
+        var settings = MigrationServices.DevelopmentSettings();
+        settings[DevelopmentAccountInitializer.PasswordKey] = password;
+        return MigrationServices.Build(ConnectionString, Environments.Development, settings);
+    }
+
+    private string ConnectionString
+    {
+        get
+        {
+            using var scope = CreateScope();
+            return scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.GetConnectionString()!;
+        }
     }
 }

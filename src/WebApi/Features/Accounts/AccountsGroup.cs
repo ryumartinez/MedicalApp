@@ -3,8 +3,7 @@ using MedicalApp.Common.Authorization;
 namespace MedicalApp.Features.Accounts;
 
 /// <summary>
-/// Administrator account provisioning. Requires the <c>administrator</c> role on the API client.
-/// Keycloak administrative roles alone grant no access.
+/// Administrator account provisioning. Requires the <c>administrator</c> API role in the access token.
 /// </summary>
 public class AccountsGroup : Group
 {

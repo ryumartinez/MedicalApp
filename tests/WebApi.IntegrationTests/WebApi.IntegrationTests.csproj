@@ -26,12 +26,10 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\WebApi\WebApi.csproj"/>
         <ProjectReference Include="..\..\tools\MigrationService\MigrationService.csproj"/>
-        <ProjectReference Include="..\..\tools\KeycloakInitializer\KeycloakInitializer.csproj"/>
         <ProjectReference Include="..\..\tools\GarageInitializer\GarageInitializer.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="..\..\tools\AppHost\Keycloak\Realms\medicalapp-realm.json" Link="medicalapp-realm.json" CopyToOutputDirectory="PreserveNewest"/>
         <Content Include="..\..\tools\AppHost\Garage\garage.toml" Link="garage.toml" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 </Project>

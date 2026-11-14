@@ -11,8 +11,8 @@ builder.AddServiceDefaults();
 builder.Services.AddCustomProblemDetails();
 
 builder.AddWebApi();
-builder.AddKeycloakAuthentication();
-builder.AddKeycloakSwagger();
+builder.AddIdentityServer();
+builder.AddIdentitySwagger();
 builder.AddApplication();
 builder.AddInfrastructure();
 builder.AddObjectStorage();
@@ -37,7 +37,8 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCustomFastEndpoints();
-app.UseKeycloakSwaggerGen();
+app.MapRazorPages();
+app.UseIdentitySwaggerGen();
 app.UseEventualConsistencyMiddleware();
 
 app.MapDefaultEndpoints();

@@ -1,6 +1,5 @@
 using AppHost.Commands;
 using AppHost.Garage;
-using AppHost.Keycloak;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Projects;
@@ -61,38 +60,20 @@ var api = builder
 
 if (!builder.ExecutionContext.IsPublishMode)
 {
-    var keycloak = builder.AddKeycloak("keycloak", 8080)
-        .WithImageTag(KeycloakImage.Tag)
-        .WithDataVolume(builder.Configuration["Keycloak:DataVolume"])
-        .WithRealmImport("./Keycloak/Realms")
-        .WithEnabledFeatures("persistent-user-sessions")
-        .WithOtlpExporter();
+    // The API is its own authorization server. Its HTTPS endpoint is the issuer the browser, the API, and the
+    // development mappings all use.
+    var apiEndpoint = api.GetEndpoint("https");
+    api.WithEnvironment("Authentication__Issuer", apiEndpoint);
 
-    // The API uses this secret for the provisioning service account. The initializer applies it to the client.
-    var provisioningSecret = builder.AddParameter("keycloak-provisioning-secret",
-        new GenerateParameterDefault { MinLength = 48, Special = false }, secret: true, persist: true);
-
-    // Shared password for the realm-file development accounts. The initializer sets it only on accounts without a password.
-    var developmentPassword = builder.AddParameter("keycloak-dev-password",
+    // Shared password for the seeded development accounts. The migration service sets it only on accounts without a password.
+    var developmentPassword = builder.AddParameter("dev-account-password",
         new GenerateParameterDefault { MinLength = 16, Special = false }, secret: true, persist: true);
 
-    var keycloakInitializer = builder.AddProject<KeycloakInitializer>("keycloak-init")
-        .WithEnvironment("KEYCLOAK_ENDPOINT", keycloak.GetEndpoint("http"))
-        .WithEnvironment(context =>
-        {
-            context.EnvironmentVariables["KEYCLOAK_ADMIN_PASSWORD"] = keycloak.Resource.AdminPasswordParameter;
-        })
-        .WithEnvironment("KEYCLOAK_PROVISIONING_SECRET", provisioningSecret)
-        .WithEnvironment("KEYCLOAK_DEV_PASSWORD", developmentPassword)
-        .WaitFor(keycloak);
-
-    // Development seed mappings use the issuer that browser tokens carry.
-    migrationService.WithEnvironment("Authentication__Keycloak__DevelopmentIssuer",
-        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/medicalapp"));
-
-    api.WithReference(keycloak)
-        .WithEnvironment("Authentication__Keycloak__Provisioning__ClientSecret", provisioningSecret)
-        .WaitForCompletion(keycloakInitializer);
+    migrationService
+        .WithEnvironment("Authentication__DevelopmentIssuer", apiEndpoint)
+        .WithEnvironment("Authentication__DevelopmentPassword", developmentPassword)
+        .WithEnvironment("Authentication__Clients__Swagger__RedirectUris__0",
+            ReferenceExpression.Create($"{apiEndpoint}/swagger/oauth2-redirect.html"));
 
     // Garage secrets. Digits only, so each value is valid hexadecimal for the RPC secret and key formats.
     static GenerateParameterDefault Digits(int length) =>

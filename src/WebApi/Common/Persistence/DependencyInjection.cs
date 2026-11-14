@@ -1,4 +1,5 @@
 using EntityFramework.Exceptions.PostgreSQL;
+using MedicalApp.Common.Identity;
 using MedicalApp.Common.Persistence.Interceptors;
 
 namespace MedicalApp.Common.Persistence;
@@ -26,5 +27,7 @@ public static class DependencyInjection
                 // Return strongly typed useful exceptions
                 options.UseExceptionProcessor();
             });
+
+        services.AddIdentityStores(builder.Configuration);
     }
 }

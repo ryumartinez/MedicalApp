@@ -10,5 +10,5 @@ public record GetAccountResponse(
     GetAccountResponse.ProviderAccountDto? ProviderAccount,
     IReadOnlyList<string> PendingSteps)
 {
-    public record ProviderAccountDto(string Username, bool Enabled, IReadOnlyList<string> Roles);
+    public record ProviderAccountDto(string Username, bool Enabled, bool PasswordSet, IReadOnlyList<string> Roles);
 }

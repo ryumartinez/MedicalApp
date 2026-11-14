@@ -26,14 +26,14 @@ public class DisableAccountEndpoint(ApplicationDbContext dbContext, IIdentityPro
             return;
         }
 
-        // Disable the mapping first so the next authorization check denies access even if Keycloak is unavailable.
+        // Disable the mapping first so the next authorization check denies access even if a later step fails.
         if (identity.Enabled)
         {
             identity.Disable();
             await dbContext.SaveChangesAsync(ct);
         }
 
-        // Then stop new tokens. A retry repeats these steps safely.
+        // Then stop sign-in, end sessions, and revoke pending codes. A retry repeats these steps safely.
         var account = await accounts.FindBySubjectAsync(identity.Subject, ct);
         if (account is not null)
         {

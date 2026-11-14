@@ -16,7 +16,7 @@ Each child spec owns its detailed rules, implementation scope, validation, and o
 
 | Spec | Scope | Dependencies |
 |---|---|---|
-| [Identity and access](patient-progress-tracking/identity-and-access.md) | Keycloak authentication, identity mappings, treatment relationships, access policies | Foundation for all protected endpoints |
+| [Identity and access](patient-progress-tracking/identity-and-access.md) | Identity and OpenIddict authentication, identity mappings, treatment relationships, access policies | Foundation for all protected endpoints |
 | [Forms and publishing](patient-progress-tracking/forms-and-publishing.md) | Drafts, questions, validation, duplication, immutable versions | Identity and access |
 | [Plans and scheduling](patient-progress-tracking/plans-and-scheduling.md) | Assignments, reporting periods, timezones, plan closure | Identity and published forms. Schedule foundations start in milestone 1. |
 | [Entries and submission](patient-progress-tracking/entries-and-submission.md) | Draft answers, validation, submission, idempotency, concurrency | Plans and published forms. Attachments also require media. |
@@ -54,7 +54,7 @@ The first release includes:
 - Garage storage through Aspire, with persistent data and automatic initialization
 - Authorized uploads and downloads through temporary signed URLs
 - File validation, upload expiration, and abandoned upload cleanup
-- Keycloak authentication and access rules for doctors and patients.
+- Authentication through the API's own authorization server (ASP.NET Core Identity and OpenIddict) and access rules for doctors and patients.
 
 Later releases can add reminders, doctor feedback, corrections to submitted entries, conditional questions, and advanced reports.
 Reminder channels and delivery timing remain decisions for a later release.
@@ -99,7 +99,7 @@ The implementation follows these conventions:
 
 | Milestone | Work | Completion criteria |
 |---|---|---|
-| 1. Access, storage, and foundations | Keycloak through Aspire, identity mappings, access policies, typed IDs, schedules, Garage through Aspire, persistent volumes, secrets, and initialization | Aspire starts Keycloak and Garage. Initialization is repeatable. Identity and storage state survive restarts. Access and schedule tests pass. |
+| 1. Access, storage, and foundations | Identity and OpenIddict in the API, identity mappings, access policies, typed IDs, schedules, Garage through Aspire, persistent volumes, secrets, and initialization | Aspire starts the API and Garage. Initialization is repeatable. Identity and storage state survive restarts. Access and schedule tests pass. |
 | 2. Forms | Draft creation, updates, duplication, publication, persistence, and all question types | A doctor can publish text, scale, choice, image, and video questions. Later edits preserve published versions. |
 | 3. Plans, entries, and media | Assignments, reporting periods, drafts, uploads, validation, submission, downloads, cleanup, and plan closure | A patient can submit structured answers and files with concurrency protection and authorized access. |
 | 4. History and summaries | Filtered history, attachment access, completion counts, numeric trends, Swagger documentation, and seed data | Both psychology and video-based physical therapy work through the API. |
@@ -134,6 +134,6 @@ The end-to-end acceptance scenarios are:
 The schedule and submission rules remain proposed defaults. Changes to those defaults must remain explicit in the implementation.
 
 Each child spec records the decisions for its capability.
-Keycloak is the selected authentication provider. Its implementation must use the official Aspire hosting and authentication integrations.
+The API is its own authorization server, built on ASP.NET Core Identity and OpenIddict. Keycloak was replaced; see the [ADR](../docs/adr/20261108-use-aspnet-core-identity-and-openiddict-instead-of-keycloak.md).
 Identity mappings and treatment relationship management belong to milestone 1.
 Media limits and quotas need decisions before the upload implementation.

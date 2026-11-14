@@ -138,6 +138,18 @@ dotnet new ssw-vsa --name {{SolutionName}}
 
 2. Open https://localhost:7255/swagger in your browser to see it running ️🏃‍♂️
 
+### Sign-in
+
+The API is its own authorization server, built on ASP.NET Core Identity and OpenIddict. There is no separate identity service to run.
+In Swagger, select **Authorize** and sign in as `development-doctor`, `development-patient`, or `development-administrator`.
+They share one generated password, stored as `Parameters:dev-account-password` in the AppHost user secrets:
+
+```bash
+dotnet user-secrets list --project tools/AppHost
+```
+
+See [`src/WebApi/Features/Identity/README.md`](src/WebApi/Features/Identity/README.md) for account provisioning, password setup links, and production settings.
+
 
 ### PostgreSQL database
 
