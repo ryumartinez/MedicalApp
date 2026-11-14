@@ -61,7 +61,13 @@ public class CreateAccountEndpoint(ApplicationDbContext dbContext, IIdentityProv
 
         var account = await accounts.CreateAsync(new NewIdentityProviderAccount(req.Username, req.Email, req.FirstName, req.LastName), ct);
         if (account is null)
-            return ApplicationIdentityErrors.EmailInUse;
+        {
+            // A concurrent retry can commit the same username after the check above. Its email then looks taken,
+            // but the request is a retry and gets that account, not a conflict.
+            return await accounts.FindByUsernameAsync(req.Username, ct) is null
+                ? ApplicationIdentityErrors.EmailInUse
+                : await FindExistingAsync(issuer, req.Username, ct);
+        }
 
         // The mapping starts disabled and grants no progress access until provisioning finishes.
         var identity = ApplicationIdentity.Create(issuer, account.Subject);
